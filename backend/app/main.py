@@ -109,7 +109,7 @@ async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
         found += 1
 
     await con.execute(
-        "UPDATE scan SET status='done', finished_at=now(), summary_json=$2 WHERE id=$1",
+        "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
         scan_id,
         json.dumps({
             "assets_found": found,
