@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from . import db
 from .config import CORS_ORIGINS
+from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
 
 
@@ -49,33 +50,74 @@ async def _demo_org() -> UUID:
     return await con.fetchval("INSERT INTO org(name) VALUES('Demo Org') RETURNING id")
 
 
+MAX_HOSTS = 20          # cap fan-out so a scan stays demo-fast
+SCAN_CONCURRENCY = 8
+
+
+async def _persist_asset(con, scan_id, org_id, host, facts, source) -> None:
+    asset_id = await con.fetchval(
+        """INSERT INTO crypto_asset
+           (org_id, scan_id, source, host, pubkey_algo, key_bits, curve, sig_algo,
+            tls_version, category, forward_secrecy, est_time_to_break, hndl_risk)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id""",
+        org_id, scan_id, source, host, facts.pubkey_algo, facts.key_bits, facts.curve,
+        facts.sig_algo, facts.tls_version, facts.category, facts.forward_secrecy,
+        facts.est_time_to_break, facts.hndl_risk,
+    )
+    await con.execute(
+        "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
+        "ON CONFLICT (asset_id) DO NOTHING",
+        asset_id,
+    )
+
+
 async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     con = db.pool()
-    # naive host expansion; CT-log enumeration of shadow subdomains is the next step.
-    hosts = [target, f"www.{target}"] if "." in target and not target.startswith("www.") else [target]
+    apex = target.lower().lstrip("*.").rstrip(".")
+    requested = {apex, f"www.{apex}"}
+
+    # 1) scan the apex + www first (fast) to harvest SANs as a discovery source.
+    seed_facts = {h: await asyncio.to_thread(scan_tls, h) for h in requested}
+    sans = {s for f in seed_facts.values() if f.san for s in f.san
+            if s.endswith(apex) and "*" not in s}
+
+    # 2) Certificate Transparency enumeration (best-effort; SANs cover us if it's down).
+    ct_hosts = set(await enumerate_hosts(apex))
+
+    # 3) union all discovery sources, cap the fan-out.
+    discovered = (sans | ct_hosts) - requested
+    candidates = list(requested) + sorted(discovered)
+    candidates = candidates[:MAX_HOSTS]
+
+    # 4) scan everything concurrently (reuse seed results for apex/www).
+    sem = asyncio.Semaphore(SCAN_CONCURRENCY)
+
+    async def scan_one(host):
+        if host in seed_facts:
+            return host, seed_facts[host]
+        async with sem:
+            return host, await asyncio.to_thread(scan_tls, host)
+
+    results = await asyncio.gather(*(scan_one(h) for h in candidates))
+
     found = 0
-    for host in hosts:
-        facts = await asyncio.to_thread(scan_tls, host)
+    for host, facts in results:
         if facts.error:
             continue
-        asset_id = await con.fetchval(
-            """INSERT INTO crypto_asset
-               (org_id, scan_id, source, host, pubkey_algo, key_bits, curve, sig_algo,
-                tls_version, category, forward_secrecy, est_time_to_break, hndl_risk)
-               VALUES ($1,$2,'tls',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id""",
-            org_id, scan_id, host, facts.pubkey_algo, facts.key_bits, facts.curve,
-            facts.sig_algo, facts.tls_version, facts.category, facts.forward_secrecy,
-            facts.est_time_to_break, facts.hndl_risk,
-        )
-        await con.execute(
-            "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
-            "ON CONFLICT (asset_id) DO NOTHING",
-            asset_id,
-        )
+        source = "tls" if host in requested else "ct_log"   # 'ct_log' = shadow find
+        await _persist_asset(con, scan_id, org_id, host, facts, source)
         found += 1
+
     await con.execute(
         "UPDATE scan SET status='done', finished_at=now(), summary_json=$2 WHERE id=$1",
-        scan_id, json.dumps({"assets_found": found, "hosts": hosts}),
+        scan_id,
+        json.dumps({
+            "assets_found": found,
+            "hosts_scanned": len(candidates),
+            "shadow_hosts_discovered": len(discovered),
+            "ct_log_hits": len(ct_hosts),
+            "discovery_sources": {"ct_logs": len(ct_hosts), "cert_sans": len(sans)},
+        }),
     )
 
 

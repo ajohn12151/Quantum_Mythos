@@ -13,6 +13,7 @@ from dataclasses import dataclass, asdict
 
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa, ec, dsa, ed25519, ed448
+from cryptography.x509.oid import ExtensionOID
 
 from .classify import classify_pubkey, est_time_to_break, hndl_risk
 
@@ -31,6 +32,7 @@ class TlsCryptoFacts:
     category: str
     est_time_to_break: str
     hndl_risk: str
+    san: list[str] | None = None     # other hostnames listed on the cert (discovery source)
     error: str | None = None
 
     def to_dict(self) -> dict:
@@ -83,6 +85,11 @@ def scan_tls(host: str, port: int = 443, timeout: float = 8.0) -> TlsCryptoFacts
         cipher_name = cipher_tuple[0] if cipher_tuple else ""
         fs = _forward_secrecy(tls_version, cipher_name)
         category = classify_pubkey(pubkey_algo)
+        try:
+            ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+            san = sorted({n.lower() for n in ext.value.get_values_for_type(x509.DNSName)})
+        except Exception:
+            san = []
         return TlsCryptoFacts(
             host=host, port=port,
             pubkey_algo=pubkey_algo, key_bits=key_bits, curve=curve, sig_algo=sig_algo,
@@ -90,6 +97,7 @@ def scan_tls(host: str, port: int = 443, timeout: float = 8.0) -> TlsCryptoFacts
             category=category,
             est_time_to_break=est_time_to_break(pubkey_algo, key_bits),
             hndl_risk=hndl_risk(category, fs),
+            san=san,
         )
     except Exception as e:  # failure mode is a recorded error, never a crash
         return TlsCryptoFacts(
