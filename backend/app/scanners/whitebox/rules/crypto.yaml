@@ -55,20 +55,17 @@ rules:
       - pattern: AES.new($K, AES.MODE_ECB, ...)
       - pattern: crypto.createCipheriv("=~/.*-ecb/i", ...)
 
-  - id: qm-weak-random-for-secrets
-    languages: [python, javascript, typescript]
-    severity: WARNING
-    message: "Weak RNG for security material. Use secrets / os.urandom / crypto.randomBytes."
-    metadata: {cwe: "CWE-330", qm_kind: misuse, qm_category: unknown}
-    pattern-either:
-      - pattern: random.random()
-      - pattern: random.randint(...)
-      - pattern: Math.random()
-
+  # Real secret formats only (gitleaks-style) — near-zero false positives, unlike
+  # matching any variable named *secret*. These are unambiguous live credentials.
   - id: qm-hardcoded-secret
     languages: [generic]
     severity: ERROR
-    message: "Hardcoded secret/key in source — invisible on the wire, catastrophic if leaked."
+    message: "Hardcoded live secret/key in source — catastrophic if leaked."
     metadata: {cwe: "CWE-798", qm_kind: misuse, qm_category: unknown}
-    patterns:
-      - pattern-regex: "(?i)\\b[a-z0-9_]*(secret|api_?key|passwd|password|private_?key|access_?token|auth_?token|token)[a-z0-9_]*\\s*[=:]\\s*[\"'][A-Za-z0-9_/+=.\\-]{8,}[\"']"
+    pattern-either:
+      - pattern-regex: "AKIA[0-9A-Z]{16}"
+      - pattern-regex: "sk_live_[0-9a-zA-Z]{16,}"
+      - pattern-regex: "ghp_[0-9A-Za-z]{36}"
+      - pattern-regex: "AIza[0-9A-Za-z_\\-]{35}"
+      - pattern-regex: "xox[baprs]-[0-9A-Za-z-]{10,}"
+      - pattern-regex: "-----BEGIN [A-Z ]*PRIVATE KEY-----"

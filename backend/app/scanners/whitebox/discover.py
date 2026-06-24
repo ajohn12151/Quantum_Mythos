@@ -48,12 +48,19 @@ def get_repo(target: str) -> tuple[pathlib.Path, bool]:
     return tmp, True
 
 
+# Skip non-production code so findings reflect real source, not test/doc noise.
+_EXCLUDE = ["tests", "test", "__tests__", "docs", "doc",
+            "benchmark", "benchmarks", "vendor", "node_modules", "fixtures",
+            "*.min.js", "*_test.py", "test_*.py", "*.test.js"]
+
+
 def run_semgrep(path: pathlib.Path) -> list[CodeFinding]:
-    proc = subprocess.run(
-        [_SEMGREP, "--config", str(_RULES), "--json", "--metrics=off",
-         "--quiet", "--disable-version-check", str(path)],
-        capture_output=True, text=True, timeout=300,
-    )
+    cmd = [_SEMGREP, "--config", str(_RULES), "--json", "--metrics=off",
+           "--quiet", "--disable-version-check"]
+    for pat in _EXCLUDE:
+        cmd += ["--exclude", pat]
+    cmd.append(str(path))
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if not proc.stdout.strip():
         raise RuntimeError(f"semgrep produced no output: {proc.stderr[:500]}")
     data = json.loads(proc.stdout)
