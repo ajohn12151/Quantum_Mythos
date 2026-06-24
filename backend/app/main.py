@@ -22,6 +22,7 @@ from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover
 from .scanners.whitebox.reason import prioritize
+from .scanners.whitebox.remediate import remediate as propose_remediation
 
 
 @asynccontextmanager
@@ -42,6 +43,10 @@ class ScanRequest(BaseModel):
     org_id: UUID | None = None          # if omitted, the demo org is used/created
     mode: str = "black_box"             # 'black_box' | 'white_box'
     target: str                         # domain (black-box) or repo URL (white-box)
+
+
+class RemediateRequest(BaseModel):
+    target: str                         # repo URL or local path to fix
 
 
 # ---------- helpers ----------
@@ -256,6 +261,16 @@ async def remediate(asset_id: UUID):
         asset_id, pr_url,
     )
     return {"asset_id": str(asset_id), "state": "pr_open", "pr_url": pr_url}
+
+
+@app.post("/api/remediate/preview")
+async def remediate_preview(req: RemediateRequest):
+    """Generate safe crypto-agility fix diffs for a repo (no PR, no token, $0)."""
+    fixes = await asyncio.to_thread(propose_remediation, req.target)
+    return [
+        {"file_path": f.file_path, "fixes": f.fixes, "diff": f.diff, "note": f.note}
+        for f in fixes
+    ]
 
 
 @app.post("/api/scans/{scan_id}/reverify")
