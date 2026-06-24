@@ -1,0 +1,1322 @@
+[
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__gcc-O3__static__strip",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_aes_sha__elf-x86_64__gcc-O3__static__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_aes_sha__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_aes_sha__macho-arm64__clang-O3__static__strip",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_aes_sha__macho-arm64__clang-O3__static__sym",
+    "source": "ctrl_aes_sha.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__gcc-O3__static__strip",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_fileio__elf-x86_64__gcc-O3__static__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_fileio__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_fileio__macho-arm64__clang-O3__static__strip",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_fileio__macho-arm64__clang-O3__static__sym",
+    "source": "ctrl_fileio.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__gcc-O3__static__strip",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_hello__elf-x86_64__gcc-O3__static__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_hello__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ctrl_hello__macho-arm64__clang-O3__static__strip",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ctrl_hello__macho-arm64__clang-O3__static__sym",
+    "source": "ctrl_hello.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__gcc-O3__static__strip",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "dh_keyex__elf-x86_64__gcc-O3__static__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__macho-arm64__clang-O0__dynamic__strip",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "dh_keyex__macho-arm64__clang-O0__dynamic__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__macho-arm64__clang-O3__dynamic__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dh_keyex__macho-arm64__clang-O3__static__strip",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "dh_keyex__macho-arm64__clang-O3__static__sym",
+    "source": "dh_keyex.c",
+    "present_asymmetric": true,
+    "families": [
+      "DH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__gcc-O3__static__strip",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "dsa_sign__elf-x86_64__gcc-O3__static__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__macho-arm64__clang-O0__dynamic__strip",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "dsa_sign__macho-arm64__clang-O0__dynamic__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__macho-arm64__clang-O3__dynamic__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "dsa_sign__macho-arm64__clang-O3__static__strip",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "dsa_sign__macho-arm64__clang-O3__static__sym",
+    "source": "dsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "DSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__gcc-O3__static__strip",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ec_keygen__elf-x86_64__gcc-O3__static__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ec_keygen__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ec_keygen__macho-arm64__clang-O3__static__strip",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ec_keygen__macho-arm64__clang-O3__static__sym",
+    "source": "ec_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECC"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ecdh__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__elf-x86_64__gcc-O3__static__strip",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ecdh__elf-x86_64__gcc-O3__static__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ecdh__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdh__macho-arm64__clang-O3__static__strip",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ecdh__macho-arm64__clang-O3__static__sym",
+    "source": "ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__gcc-O3__static__strip",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ecdsa_sign__elf-x86_64__gcc-O3__static__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__macho-arm64__clang-O0__dynamic__strip",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "ecdsa_sign__macho-arm64__clang-O0__dynamic__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__macho-arm64__clang-O3__dynamic__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "ecdsa_sign__macho-arm64__clang-O3__static__strip",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "ecdsa_sign__macho-arm64__clang-O3__static__sym",
+    "source": "ecdsa_sign.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__clang-O0__dynamic__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__gcc-O0__dynamic__strip",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__gcc-O0__dynamic__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__gcc-O3__dynamic__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__gcc-O3__static__strip",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rsa_keygen__elf-x86_64__gcc-O3__static__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "elf",
+    "arch": "x86_64",
+    "compiler": "gcc",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__macho-arm64__clang-O0__dynamic__strip",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "rsa_keygen__macho-arm64__clang-O0__dynamic__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__macho-arm64__clang-O3__dynamic__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "rsa_keygen__macho-arm64__clang-O3__static__strip",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rsa_keygen__macho-arm64__clang-O3__static__sym",
+    "source": "rsa_keygen.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "clang",
+    "opt": "O3",
+    "linkage": "static",
+    "stripped": false
+  }
+]

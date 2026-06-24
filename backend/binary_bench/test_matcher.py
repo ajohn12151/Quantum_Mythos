@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Focused tests for the QV-API matcher and symbol normalization.
+
+Runnable as a script (python3 test_matcher.py) or under pytest. The critical
+property is that the EC* namespaces do NOT bleed into the bare D* families:
+  ECDSA_do_sign   must be ECDSA, never DSA
+  ECDH_compute_key must be ECDH, never DH
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app.scanners.binary.qv_apis import match_families  # noqa: E402
+from app.scanners.binary.tier_a_symbols import normalize  # noqa: E402
+
+
+def _fams(*names) -> set[str]:
+    return set(match_families(set(names)))
+
+
+def test_ecdsa_not_dsa():
+    assert _fams("ECDSA_do_sign", "ECDSA_SIG_new") == {"ECDSA"}
+
+
+def test_ecdh_not_dh():
+    assert _fams("ECDH_compute_key") == {"ECDH"}
+
+
+def test_bare_dsa():
+    assert _fams("DSA_do_sign", "DSA_generate_key") == {"DSA"}
+
+
+def test_bare_dh():
+    assert _fams("DH_generate_key", "DH_compute_key") == {"DH"}
+
+
+def test_rsa_paths():
+    assert _fams("RSA_generate_key_ex") == {"RSA"}
+    assert _fams("EVP_PKEY_CTX_set_rsa_keygen_bits") == {"RSA"}
+
+
+def test_ec_generic():
+    assert _fams("EC_KEY_new_by_curve_name", "EC_POINT_mul") == {"ECC"}
+
+
+def test_symmetric_is_not_asymmetric():
+    # AES/SHA/EVP cipher names must yield NO asymmetric family.
+    assert _fams("EVP_EncryptInit_ex", "EVP_aes_256_cbc", "SHA256", "AES_encrypt") == set()
+
+
+def test_no_false_positive_on_common_words():
+    # 'EC'/'DH'/'DSA' as substrings of unrelated symbols must not match.
+    assert _fams("execve", "fdopen", "update_widths", "decode_header") == set()
+
+
+def test_normalize():
+    assert normalize("_EVP_PKEY_keygen") == "EVP_PKEY_keygen"      # Mach-O underscore
+    assert normalize("EVP_PKEY_keygen@OPENSSL_3.0.0") == "EVP_PKEY_keygen"  # ELF version
+    assert normalize("_RSA_sign@@OPENSSL_3.0.0") == "RSA_sign"
+
+
+def _run():
+    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    failed = 0
+    for t in tests:
+        try:
+            t()
+            print(f"  PASS {t.__name__}")
+        except AssertionError as e:
+            failed += 1
+            print(f"  FAIL {t.__name__}: {e}")
+    print(f"\n{len(tests) - failed}/{len(tests)} passed")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_run())

@@ -1,0 +1,6 @@
+# Built benchmark binaries (regenerate with: python3 build.py)
+bin/
+# Host-specific real-world binaries (regenerate with: realworld/setup_realworld.sh)
+realworld/rw_*
+# Computed results
+results.json

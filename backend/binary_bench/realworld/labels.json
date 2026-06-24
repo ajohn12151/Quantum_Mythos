@@ -1,0 +1,42 @@
+[
+  {
+    "binary": "rw_openssl",
+    "source_path": "/opt/homebrew/bin/openssl",
+    "present_asymmetric": true,
+    "families": ["RSA", "ECC", "ECDH", "DSA", "DH"],
+    "linkage": "dynamic",
+    "note": "Homebrew OpenSSL CLI, arm64 Mach-O, dynamically links libcrypto/libssl. Imports the full asymmetric API surface. Expect HIGH-confidence detection."
+  },
+  {
+    "binary": "rw_ssh",
+    "source_path": "/usr/bin/ssh (arm64 slice)",
+    "present_asymmetric": true,
+    "families": ["RSA", "ECDSA", "ECDH", "DSA", "DH"],
+    "linkage": "dynamic",
+    "note": "Apple OpenSSH client, dynamic libcrypto. Expect HIGH-confidence detection via imports."
+  },
+  {
+    "binary": "rw_docker",
+    "source_path": "/usr/local/bin/docker",
+    "present_asymmetric": true,
+    "families": ["ECDSA", "RSA", "ECDH"],
+    "linkage": "static",
+    "note": "HARD CASE. Go static binary, stripped. Verified to contain crypto/ecdsa, crypto/rsa, crypto/elliptic/nistec_p256 and TLS_ECDHE_ECDSA cipher suites via embedded source paths + strings. NO crypto dylib, NO OpenSSL symbols, and Go's P-256 is stored in a non-OpenSSL representation so curve-constant matching misses it. EXPECTED FALSE NEGATIVE — the genuine blind spot."
+  },
+  {
+    "binary": "rw_ls",
+    "source_path": "/bin/ls (arm64 slice)",
+    "present_asymmetric": false,
+    "families": [],
+    "linkage": "dynamic",
+    "note": "Plain coreutils-style tool, no asymmetric crypto. Expect clean negative."
+  },
+  {
+    "binary": "rw_true",
+    "source_path": "/usr/bin/true (arm64 slice)",
+    "present_asymmetric": false,
+    "families": [],
+    "linkage": "dynamic",
+    "note": "Trivial binary, no crypto. Expect clean negative."
+  }
+]
