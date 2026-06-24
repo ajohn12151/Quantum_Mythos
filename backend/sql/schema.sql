@@ -86,3 +86,4 @@ CREATE TABLE IF NOT EXISTS finding (
 -- idempotent migrations (so an already-created DB picks up new columns)
 ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS file_path TEXT;
 ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS line INT;
+ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS resolved BOOLEAN NOT NULL DEFAULT false;

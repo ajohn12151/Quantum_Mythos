@@ -7,6 +7,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import pathlib
+import shutil
+import subprocess
+import tempfile
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from uuid import UUID
@@ -20,9 +24,9 @@ from .config import CORS_ORIGINS
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
-from .scanners.whitebox.discover import discover
+from .scanners.whitebox.discover import discover, run_semgrep
 from .scanners.whitebox.reason import prioritize
-from .scanners.whitebox.remediate import remediate as propose_remediation
+from .scanners.whitebox.remediate import apply_fixes, remediate as propose_remediation
 
 
 @asynccontextmanager
@@ -273,7 +277,75 @@ async def remediate_preview(req: RemediateRequest):
     ]
 
 
+def _working_copy(target: str) -> pathlib.Path:
+    work = pathlib.Path(tempfile.mkdtemp(prefix="qm_reverify_"))
+    p = pathlib.Path(target).expanduser()
+    if p.exists():
+        shutil.copytree(p, work, dirs_exist_ok=True)
+    else:
+        subprocess.run(["git", "clone", "--depth", "1", target, str(work)],
+                       check=True, capture_output=True, timeout=120)
+    return work
+
+
+def _reverify_compute(target: str) -> list:
+    """Apply the fixes to a throwaway copy, re-scan, and return the findings that
+    were present before but are GONE after the fix (i.e. genuinely resolved)."""
+    # Match by CONTENT (file + rule + snippet), not line — applying fixes inserts
+    # imports and shifts line numbers, which would falsely "resolve" untouched findings.
+    def sig(f):
+        return (f.file_path, f.rule_id, (f.snippet or "").strip())
+
+    work = _working_copy(target)
+    try:
+        before = run_semgrep(work)
+        apply_fixes(work, before)
+        after = run_semgrep(work)
+        after_sigs = {sig(f) for f in after}
+        return [f for f in before if sig(f) not in after_sigs]
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 @app.post("/api/scans/{scan_id}/reverify")
 async def reverify(scan_id: UUID):
-    # TODO: re-scan and flip resolved assets to 'verified' (red -> green).
-    return {"scan_id": str(scan_id), "status": "not_implemented"}
+    """Closed-loop proof: apply fixes, re-scan, flip resolved rows red->green."""
+    con = db.pool()
+    scan = await con.fetchrow("SELECT * FROM scan WHERE id=$1", scan_id)
+    if not scan:
+        raise HTTPException(404, "scan not found")
+    if scan["mode"] != "white_box":
+        return {"scan_id": str(scan_id), "status": "unsupported",
+                "detail": "re-verify currently supports white_box scans"}
+
+    org_id, target = scan["org_id"], scan["target"]
+    resolved = await asyncio.to_thread(_reverify_compute, target)
+
+    verified_assets = verified_findings = 0
+    for f in resolved:
+        if f.kind == "pqc_vulnerable":
+            row = await con.fetchrow(
+                "SELECT id FROM crypto_asset WHERE org_id=$1 AND file_path=$2 AND line=$3 "
+                "AND source='code_dep'",
+                org_id, f.file_path, f.line,
+            )
+            if row:
+                await con.execute(
+                    "UPDATE remediation SET state='verified', verified_at=now() WHERE asset_id=$1",
+                    row["id"],
+                )
+                verified_assets += 1
+        else:
+            tag = await con.execute(
+                "UPDATE finding SET resolved=true WHERE org_id=$1 AND file_path=$2 AND line=$3 "
+                "AND resolved=false",
+                org_id, f.file_path, f.line,
+            )
+            verified_findings += int(tag.split()[-1])
+
+    return {
+        "scan_id": str(scan_id),
+        "resolved": len(resolved),
+        "verified_assets": verified_assets,
+        "verified_findings": verified_findings,
+    }

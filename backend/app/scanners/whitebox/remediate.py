@@ -73,40 +73,62 @@ def _ensure_imports(lines: list[str], imports: set[str]) -> list[str]:
     return add + lines if add else lines
 
 
-def propose_fixes(repo_path: pathlib.Path, findings) -> list[FileFix]:
+_NOTE = ("Deterministic, review-gated. Crypto primitives delegated to a verified "
+         "provider, never authored here. Pair with a differential test before merge.")
+
+
+def _group_by_file(findings) -> dict[str, list]:
     by_file: dict[str, list] = {}
     for f in findings:
         by_file.setdefault(f.file_path, []).append(f)
+    return by_file
 
+
+def _patch_file(path: pathlib.Path, rel: str, fs) -> tuple[list[str], list[str], list[str]]:
+    """Return (original_lines, patched_lines, applied_descriptions)."""
+    original = path.read_text().splitlines(keepends=True)
+    patched = list(original)
+    applied: list[str] = []
+    imports: set[str] = set()
+    for f in fs:
+        i = f.line - 1
+        if not (0 <= i < len(patched)):
+            continue
+        new, desc, imp = _fix_line(patched[i], f.rule_id, rel)
+        if new and new != patched[i]:
+            patched[i] = new
+            applied.append(f"{rel}:{f.line}  {desc}")
+            if imp:
+                imports.add(imp)
+    return original, _ensure_imports(patched, imports), applied
+
+
+def propose_fixes(repo_path: pathlib.Path, findings) -> list[FileFix]:
     out: list[FileFix] = []
-    for rel, fs in by_file.items():
+    for rel, fs in _group_by_file(findings).items():
         path = repo_path / rel
         if not path.exists():
             continue
-        original = path.read_text().splitlines(keepends=True)
-        patched = list(original)
-        applied: list[str] = []
-        imports: set[str] = set()
-        for f in fs:
-            i = f.line - 1
-            if not (0 <= i < len(patched)):
-                continue
-            new, desc, imp = _fix_line(patched[i], f.rule_id, rel)
-            if new and new != patched[i]:
-                patched[i] = new
-                applied.append(f"{rel}:{f.line}  {desc}")
-                if imp:
-                    imports.add(imp)
-        patched = _ensure_imports(patched, imports)
+        original, patched, applied = _patch_file(path, rel, fs)
         if patched != original:
             diff = "".join(difflib.unified_diff(original, patched,
                                                 fromfile=f"a/{rel}", tofile=f"b/{rel}"))
-            out.append(FileFix(
-                file_path=rel, diff=diff, fixes=applied,
-                note="Deterministic, review-gated. Crypto primitives delegated to a "
-                     "verified provider, never authored here. Pair with a differential test before merge.",
-            ))
+            out.append(FileFix(file_path=rel, diff=diff, fixes=applied, note=_NOTE))
     return out
+
+
+def apply_fixes(repo_path: pathlib.Path, findings) -> int:
+    """Write the fixes to disk (used by the re-verify loop). Returns files changed."""
+    changed = 0
+    for rel, fs in _group_by_file(findings).items():
+        path = repo_path / rel
+        if not path.exists():
+            continue
+        original, patched, _ = _patch_file(path, rel, fs)
+        if patched != original:
+            path.write_text("".join(patched))
+            changed += 1
+    return changed
 
 
 def remediate(target: str) -> list[FileFix]:
