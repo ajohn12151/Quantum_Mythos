@@ -20,13 +20,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import db
-from .config import CORS_ORIGINS
+from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover, run_semgrep
+from .scanners.whitebox.github_pr import open_pr
 from .scanners.whitebox.reason import prioritize
-from .scanners.whitebox.remediate import apply_fixes, remediate as propose_remediation
+from .scanners.whitebox.remediate import (
+    apply_fixes, prepare_pr_files, remediate as propose_remediation,
+)
 
 
 @asynccontextmanager
@@ -51,6 +54,11 @@ class ScanRequest(BaseModel):
 
 class RemediateRequest(BaseModel):
     target: str                         # repo URL or local path to fix
+
+
+class PrRequest(BaseModel):
+    target: str                         # GitHub repo URL to open the PR against
+    token: str | None = None            # falls back to GITHUB_TOKEN env
 
 
 # ---------- helpers ----------
@@ -275,6 +283,29 @@ async def remediate_preview(req: RemediateRequest):
         {"file_path": f.file_path, "fixes": f.fixes, "diff": f.diff, "note": f.note}
         for f in fixes
     ]
+
+
+_PR_BODY = (
+    "## Quantum Mythos — crypto-agility fixes\n\n"
+    "Automated, deterministic remediation of quantum-vulnerable and misused "
+    "cryptography. Each change is mechanical; cryptographic primitives are "
+    "delegated to a verified provider, never authored by automation. "
+    "**Review before merge** and pair with a differential test.\n"
+)
+
+
+@app.post("/api/remediate/pr")
+async def remediate_pr(req: PrRequest):
+    """Open a real PR with the crypto-agility fixes (needs a GitHub token)."""
+    token = req.token or GITHUB_TOKEN
+    if not token:
+        raise HTTPException(400, "no GitHub token (set GITHUB_TOKEN in .env or pass token)")
+    files = await asyncio.to_thread(prepare_pr_files, req.target)
+    if not files:
+        return {"status": "no_fixes", "detail": "no quantum/crypto findings to fix"}
+    url = await open_pr(req.target, token, files,
+                        title="Quantum Mythos: crypto-agility fixes", body=_PR_BODY)
+    return {"pr_url": url, "files_changed": list(files.keys())}
 
 
 def _working_copy(target: str) -> pathlib.Path:

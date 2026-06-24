@@ -131,6 +131,29 @@ def apply_fixes(repo_path: pathlib.Path, findings) -> int:
     return changed
 
 
+def patched_contents(repo_path: pathlib.Path, findings) -> dict[str, str]:
+    """Return {rel_path: full patched file content} for changed files (for PR commits)."""
+    out: dict[str, str] = {}
+    for rel, fs in _group_by_file(findings).items():
+        path = repo_path / rel
+        if not path.exists():
+            continue
+        original, patched, _ = _patch_file(path, rel, fs)
+        if patched != original:
+            out[rel] = "".join(patched)
+    return out
+
+
+def prepare_pr_files(target: str) -> dict[str, str]:
+    """Clone/scan a repo and return the patched file contents to commit in a PR."""
+    path, is_temp = get_repo(target)
+    try:
+        return patched_contents(path, run_semgrep(path))
+    finally:
+        if is_temp:
+            subprocess.run(["rm", "-rf", str(path)], check=False)
+
+
 def remediate(target: str) -> list[FileFix]:
     path, is_temp = get_repo(target)
     try:
