@@ -98,6 +98,23 @@ def test_tier_c_reachability_when_built():
     assert a.ran and not a.reached_qv, f"symmetric control should be unreachable: {a.note}"
 
 
+def test_gopclntab_recovers_stripped_go():
+    """Integration: a `-s -w` stripped Go binary has no symbol table, but the
+    gopclntab parser must recover crypto/* function names. Skipped if unbuilt."""
+    from app.scanners.binary.go_pclntab import recover_go_funcnames
+    from app.scanners.binary import scan_binary
+    binroot = Path(__file__).resolve().parent / "bin"
+    stripped = binroot / "go_rsa__macho-arm64__go__static__strip"
+    if not stripped.exists():
+        print("  SKIP test_gopclntab_recovers_stripped_go (run build.py first)")
+        return
+    names = recover_go_funcnames(str(stripped))
+    assert any(n.startswith("crypto/rsa.") for n in names), "no crypto/rsa.* recovered"
+    assert "runtime.main" in names
+    f = scan_binary(str(stripped))
+    assert f.detected and "RSA" in f.families and f.detection_via == "go-pclntab", f.to_dict()
+
+
 def _run():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

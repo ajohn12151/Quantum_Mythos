@@ -63,7 +63,7 @@ def scan_binary(path: str) -> BinaryFinding:
         f.detected = True
         f.confidence = "high"
         f.families = a.families
-        f.detection_via = "go-symbol"
+        f.detection_via = a.via or "go-symbol"
         f.evidence = a.evidence
         f.note = a.note
 

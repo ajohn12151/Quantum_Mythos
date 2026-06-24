@@ -72,8 +72,10 @@ realworld/setup_realworld.sh && python3 run_realworld.py
   packages, so a retained `crypto/<primitive>` symbol is linked-and-callable
   (presence ≈ use, unlike C static over-linking). `looks_like_go` (runtime markers)
   gates this to HIGH confidence and skips Tier C (Go's interface/closure dispatch
-  defeats a direct-call graph). `go build -ldflags="-s -w"` removes the symbol table
-  and is currently missed — see the gopclntab gap in limitations.
+  defeats a direct-call graph). For `go build -ldflags="-s -w"` (symbol table
+  stripped), Tier A falls back to **`go_pclntab.py`**, which recovers function names
+  from the gopclntab — the pcln table the Go runtime always keeps for stack traces
+  (detection via `go-pclntab`). So both default and fully-stripped Go are covered.
 - **Tier B — curve constants.** Scan the image for fixed standard-curve parameters
   (P-256/384/521, secp256k1, Curve25519). Recovers an **ECC-only** signal on
   static+stripped binaries where Tier A is blind. Presence-only; constant-blind to
@@ -102,15 +104,15 @@ LOW-confidence static-presence flags:
 
 | Policy | Precision | Recall | F1 |
 |---|---|---|---|
-| STRICT | **1.00** | 0.875 | 0.933 |
-| OPERATIONAL | 0.986 | 0.958 | 0.972 |
+| STRICT | **1.00** | 0.917 | 0.957 |
+| OPERATIONAL | 0.986 | **1.00** | 0.993 |
 
 By toolchain:
 
 | Toolchain | n | Operational precision | Operational recall |
 |---|---|---|---|
 | C/C++ (OpenSSL) | 99 | 0.985 | **1.00** |
-| Go | 10 | **1.00** | 0.50 |
+| Go | 10 | **1.00** | **1.00** |
 
 Per cell:
 
@@ -119,15 +121,17 @@ Per cell:
 | dynamic / symbols | 1.00 | 1.00 | 1.00 |
 | dynamic / **stripped** | **1.00** | 1.00 | 1.00 |
 | static / symbols | **1.00** | 1.00 | **1.00** |
-| static / **stripped** | 0.40 | 0.80 | 0.923 |
+| static / **stripped** | 0.60 | 1.00 | 0.938 |
 
-- **Go precision is 1.00**: the symmetric-only Go control (`crypto/aes`+`crypto/sha256`)
-  is correctly *not* flagged — Go's DCE never links the asymmetric packages, a
-  *cleaner* negative than C static linking. **Go recall is 0.50**: the misses are
-  exactly the three `-s -w` stripped Go binaries (no symbol table) — the gopclntab
-  gap. Default `go build` Go binaries are all caught with correct families.
-- **Family attribution on the high-confidence subset: 63/63 = 100%** (incl. static
-  via Tier C reachability and Go via symbols).
+- **Go is fully covered, P=R=1.00**: default `go build` via package-path symbols,
+  `-s -w` stripped via gopclntab recovery, and the symmetric-only Go control
+  (`crypto/aes`+`crypto/sha256`) correctly *not* flagged — Go's DCE never links the
+  asymmetric packages, a *cleaner* negative than C static linking.
+- **Zero undetected positives.** The single operational false positive is the one
+  irreducible case: `ctrl_aes_sha` ELF static **fully stripped** (no symbols → Tier C
+  can't run; Tier B's curve-constant presence flags it).
+- **Family attribution on the high-confidence subset: 66/66 = 100%** (incl. static
+  via Tier C reachability and Go via symbols/gopclntab).
 - **Real-world: tp=3 fp=0 fn=0 tn=2.** `openssl`, `ssh` → high-confidence (imports);
   **Go `docker` → high-confidence via `go-symbol`** (was the prior false negative,
   now fixed by Go coverage); `ls`, `true` → clean negatives.
@@ -156,17 +160,13 @@ Per cell:
    EC curve tables, which Tier B matches. A static+stripped RSA binary built against
    a curve-free RSA library would be **missed**. Genuine RSA-in-static-stripped
    remains unsolved by Tiers A/B.
-5. **Go is now covered (default build), and it's a *cleaner* signal than C static.**
-   `docker` is detected HIGH via Go package-path symbols; the symmetric-only Go
-   control is correctly negative because Go DCE never links the asymmetric packages.
-   The remaining Go hole is `-s -w` stripped binaries (no symbol table) — addressable
-   with a gopclntab parser, not a structural detector.
+5. **Go is fully covered, and it's a *cleaner* signal than C static.** `docker` is
+   detected HIGH via Go package-path symbols; `-s -w` stripped Go is recovered from
+   the gopclntab; the symmetric-only Go control is correctly negative because Go DCE
+   never links the asymmetric packages. No structural detector was needed.
 
 ## Limitations / blind spots (summary)
 
-- **Stripped Go (`-s -w`)**: the standard symbol table is gone, so the Go path is
-  blind. Go always keeps the `gopclntab` (function names, for stack traces) — a
-  GoReSym-style parser would recover it. Highest-value next addition.
 - Go family attribution reflects *linked* packages, which include transitive crypto
   deps (e.g. `crypto/ecdsa` pulls `edwards25519`, so an ECDSA-only program also shows
   Ed25519). That capability really is in the binary; it's breadth, not a false detect.

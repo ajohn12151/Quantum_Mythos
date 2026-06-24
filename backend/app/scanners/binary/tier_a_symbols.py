@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 
 import lief
 
+from .go_pclntab import recover_go_funcnames
 from .qv_apis import CRYPTO_LIBRARY_HINTS, looks_like_go, match_families
 
 # LIEF 0.12 prints "Command 'DYLD_CHAINED_FIXUPS' not parsed!" to stderr for modern
@@ -57,8 +58,9 @@ class TierAResult:
     crypto_libs: list[str] = field(default_factory=list)
     import_families: dict[str, list[str]] = field(default_factory=dict)
     defined_families: dict[str, list[str]] = field(default_factory=dict)
-    decision: str = "none"                    # asymmetric | symmetric_or_none | inconclusive_static | none
+    decision: str = "none"                    # asymmetric | asymmetric_go | symmetric_or_none | inconclusive_static | none
     confidence: str = "high"                  # high | low
+    via: str = ""                             # detail label for the detection path
     families: list[str] = field(default_factory=list)
     evidence: list[str] = field(default_factory=list)
     note: str = ""
@@ -140,11 +142,11 @@ def analyze(path: str) -> TierAResult:
     if defined_families and looks_like_go(defined):
         res.decision = "asymmetric_go"
         res.confidence = "high"
+        res.via = "go-symbol"
         res.families = sorted(defined_families)
         res.evidence = [f"go-sym:{defined_families[fam][0]}" for fam in res.families][:6]
         res.note = ("Go std-lib crypto symbols present; Go linker DCE means a "
-                    "retained symbol is linked and callable (presence ~ use). "
-                    "Stripped (-s -w) Go binaries lose these — needs gopclntab.")
+                    "retained symbol is linked and callable (presence ~ use).")
         return res
 
     # --- dynamic crypto consumer, but NO asymmetric import -------------------
@@ -169,6 +171,22 @@ def analyze(path: str) -> TierAResult:
         res.evidence = [f"defined:{n}" for fam in res.families
                         for n in defined_families[fam][:1]][:6]
         return res
+
+    # --- stripped Go: recover names from gopclntab ---------------------------
+    # `-s -w` removes the symbol table, but the Go runtime keeps the pcln table
+    # (function names, for stack traces). Recover them and match as Go crypto.
+    go_names = recover_go_funcnames(path)
+    if go_names:
+        go_families = match_families(go_names)
+        if go_families and looks_like_go(go_names):
+            res.decision = "asymmetric_go"
+            res.confidence = "high"
+            res.via = "go-pclntab"
+            res.families = sorted(go_families)
+            res.evidence = [f"go-pclntab:{go_families[fam][0]}" for fam in res.families][:6]
+            res.note = ("Go crypto function names recovered from gopclntab (symbol "
+                        "table stripped via -s -w). Go linker DCE => presence ~ use.")
+            return res
 
     # --- nothing crypto-ish visible -----------------------------------------
     # Either genuinely no crypto, or a stripped static binary hiding it (Tier A's
