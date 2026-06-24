@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 
 from ..blackbox.classify import classify_pubkey, est_time_to_break, hndl_risk
-from . import tier_a_symbols, tier_b_constants
+from . import tier_a_symbols, tier_b_constants, tier_c_reachability
 
 
 @dataclass
@@ -58,24 +58,47 @@ def scan_binary(path: str) -> BinaryFinding:
         f.evidence = a.evidence
         f.note = "asymmetric API imported by the binary's own code"
 
-    # --- LOW confidence: static presence (Tier A symbols and/or Tier B consts)-
+    # --- static presence: try Tier C reachability to confirm or refute use ----
     elif a.decision == "inconclusive_static" or b.decision == "ecc_present":
-        f.detected = True
-        f.confidence = "low"
-        vias = []
-        fams: set[str] = set()
-        if a.decision == "inconclusive_static":
-            vias.append("static-presence")
-            fams.update(a.families)
-            f.evidence += a.evidence
-        if b.decision == "ecc_present":
-            vias.append("curve-constant")
-            fams.add("ECC")
-            f.evidence += b.evidence
-        f.detection_via = "+".join(vias)
-        f.families = sorted(fams)
-        f.note = ("statically linked asymmetric crypto present; program's use "
-                  "unverified (over-linking). Needs reachability analysis.")
+        c = tier_c_reachability.analyze(path)
+
+        if c.ran and c.reached_qv:
+            # Proven: the program's own code reaches a QV API. Upgrade to HIGH and
+            # take the precise, reachability-derived families (kills over-linking).
+            f.detected = True
+            f.confidence = "high"
+            f.families = sorted(c.reachable_families)
+            f.detection_via = "reachability"
+            f.evidence = [f"reach:{c.root}->{fam}" for fam in f.families][:6]
+            f.note = c.note
+
+        elif c.ran and not c.reached_qv:
+            # Asymmetric machinery is statically linked but no call path from the
+            # entry reaches it -> treat as not used (removes static over-linking
+            # false positives). Conservative: indirect dispatch is unresolved.
+            f.detected = False
+            f.confidence = "none"
+            f.detection_via = "reachability-negative"
+            f.note = c.note
+
+        else:
+            # Tier C could not run (stripped / no symbols): fall back to LOW-
+            # confidence presence from Tier A symbols and/or Tier B constants.
+            f.detected = True
+            f.confidence = "low"
+            vias, fams = [], set()
+            if a.decision == "inconclusive_static":
+                vias.append("static-presence")
+                fams.update(a.families)
+                f.evidence += a.evidence
+            if b.decision == "ecc_present":
+                vias.append("curve-constant")
+                fams.add("ECC")
+                f.evidence += b.evidence
+            f.detection_via = "+".join(vias)
+            f.families = sorted(fams)
+            f.note = ("statically linked asymmetric crypto present; reachability "
+                      "could not run (stripped/no symbols) so use is unverified.")
 
     # --- symmetric-only crypto consumer (true negative for asymmetric) -------
     elif a.decision == "symmetric_or_none":

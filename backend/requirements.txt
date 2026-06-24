@@ -7,3 +7,5 @@ python-dotenv>=1.0
 anthropic>=0.40
 semgrep>=1.60
 dnspython>=2.6
+lief>=0.12,<0.15
+capstone>=5.0

@@ -61,6 +61,23 @@ def test_normalize():
     assert normalize("_RSA_sign@@OPENSSL_3.0.0") == "RSA_sign"
 
 
+def test_tier_c_reachability_when_built():
+    """Integration: on a static+sym binary, Tier C must reach the right family and
+    must NOT reach QV crypto in the symmetric-only control. Skipped if the benchmark
+    has not been built (binaries are gitignored)."""
+    from app.scanners.binary import tier_c_reachability as tc
+    binroot = Path(__file__).resolve().parent / "bin"
+    rsa = binroot / "rsa_keygen__elf-x86_64__gcc-O3__static__sym"
+    aes = binroot / "ctrl_aes_sha__elf-x86_64__gcc-O3__static__sym"
+    if not (rsa.exists() and aes.exists()):
+        print("  SKIP test_tier_c_reachability_when_built (run build.py first)")
+        return
+    r = tc.analyze(str(rsa))
+    assert r.ran and "RSA" in r.reachable_families, r.note
+    a = tc.analyze(str(aes))
+    assert a.ran and not a.reached_qv, f"symmetric control should be unreachable: {a.note}"
+
+
 def _run():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0
