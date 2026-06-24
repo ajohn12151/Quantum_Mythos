@@ -30,9 +30,23 @@ class CodeFinding:
     kind: str              # pqc_vulnerable | misuse
     algo: str | None
     snippet: str | None
+    context: str | None = None     # surrounding code, so the triage LLM can judge reachability
 
 
 _SEV = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}
+
+
+def _read_context(abs_path: str, line: int, radius: int = 14) -> str | None:
+    """Return the lines around `line` (the enclosing region), the matched line marked."""
+    try:
+        lines = pathlib.Path(abs_path).read_text(errors="replace").splitlines()
+    except Exception:
+        return None
+    lo, hi = max(0, line - radius), min(len(lines), line + radius)
+    out = []
+    for i in range(lo, hi):
+        out.append(f"{'>>' if i + 1 == line else '  '} {lines[i]}")
+    return "\n".join(out)[:1800] or None
 
 
 def get_repo(target: str) -> tuple[pathlib.Path, bool]:
@@ -87,6 +101,7 @@ def run_semgrep(path: pathlib.Path) -> list[CodeFinding]:
             kind=meta.get("qm_kind", "misuse"),
             algo=meta.get("qm_algo"),
             snippet=(extra.get("lines") or "").strip()[:200] or None,
+            context=_read_context(r.get("path", ""), r.get("start", {}).get("line", 0)),
         ))
     return findings
 

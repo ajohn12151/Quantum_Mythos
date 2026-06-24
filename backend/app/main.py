@@ -29,6 +29,7 @@ from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover, run_semgrep
 from .scanners.whitebox.github_pr import open_pr
 from .scanners.whitebox.reason import prioritize
+from .scanners.whitebox.triage import triage
 from .scanners.whitebox.remediate import (
     apply_fixes, prepare_pr_files, remediate as propose_remediation,
 )
@@ -171,8 +172,13 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     crypto_asset (inventory) and classical-misuse bugs as finding rows."""
     con = db.pool()
     findings = await asyncio.to_thread(discover, target)
-    pqc = misuse = 0
+    pqc = misuse = suppressed = 0
     for f in findings:
+        v = await asyncio.to_thread(triage, f)      # TRIAGE: kill FPs, judge reachability
+        if not v.is_real:
+            suppressed += 1                          # false positive — don't persist noise
+            continue
+        reachable = True if v.reachable == "external" else (None if v.reachable == "unknown" else False)
         if f.kind == "pqc_vulnerable":
             p = prioritize(category=f.category, severity=f.severity,
                            source="code_dep", locus=f.file_path)
@@ -184,7 +190,7 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
                    VALUES ($1,$2,'code_dep',$3,$4,$5,$6,$7,'medium',$8,$9,$10,$11) RETURNING id""",
                 org_id, scan_id, f.file_path, f.line, f.algo, f.category,
                 est_time_to_break(f.algo, None),
-                Decimal(str(p["priority_score"])), p["data_sensitivity"], p["reachable_from_public"], p["rationale"],
+                Decimal(str(p["priority_score"])), v.data_sensitivity, reachable, v.rationale,
             )
             await con.execute(
                 "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
@@ -197,13 +203,14 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
                 """INSERT INTO finding
                    (org_id, cwe, title, severity, file_path, line, explanation)
                    VALUES ($1,$2,$3,$4,$5,$6,$7)""",
-                org_id, f.cwe, f.message[:140], f.severity, f.file_path, f.line, f.message,
+                org_id, f.cwe, f.message[:140], f.severity, f.file_path, f.line, v.rationale or f.message,
             )
             misuse += 1
     await con.execute(
         "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
         scan_id,
-        json.dumps({"pqc_vulnerable": pqc, "misuse_findings": misuse, "total": len(findings)}),
+        json.dumps({"pqc_vulnerable": pqc, "misuse_findings": misuse,
+                    "suppressed_false_positives": suppressed, "total": len(findings)}),
     )
 
 
