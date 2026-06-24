@@ -1,0 +1,74 @@
+# Quantum Mythos — crypto-focused Semgrep rules.
+# Two kinds of finding:
+#   qm_kind: pqc_vulnerable -> inventory (quantum-vulnerable algorithm in source) -> crypto_asset
+#   qm_kind: misuse         -> classical crypto bug exploitable TODAY            -> finding
+rules:
+  # ---------- PQC-vulnerable algorithm usage (the quantum inventory) ----------
+  - id: qm-py-rsa-keygen
+    languages: [python]
+    severity: WARNING
+    message: "Quantum-vulnerable RSA in use (Shor-breakable). Inventory for PQC migration (ML-KEM/ML-DSA)."
+    metadata: {cwe: "CWE-327", qm_kind: pqc_vulnerable, qm_category: shor_broken, qm_algo: RSA}
+    pattern-either:
+      - pattern: rsa.generate_private_key(...)
+      - pattern: RSA.generate(...)
+
+  - id: qm-py-ec-keygen
+    languages: [python]
+    severity: WARNING
+    message: "Quantum-vulnerable elliptic-curve crypto (Shor-breakable). Inventory for PQC migration."
+    metadata: {cwe: "CWE-327", qm_kind: pqc_vulnerable, qm_category: shor_broken, qm_algo: ECDSA/EC}
+    pattern-either:
+      - pattern: ec.generate_private_key(...)
+      - pattern: ECC.generate(...)
+
+  - id: qm-js-asymmetric-keygen
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: "Quantum-vulnerable asymmetric key generation (Shor-breakable). Inventory for PQC migration."
+    metadata: {cwe: "CWE-327", qm_kind: pqc_vulnerable, qm_category: shor_broken, qm_algo: RSA/EC}
+    pattern-either:
+      - pattern: crypto.generateKeyPair('rsa', ...)
+      - pattern: crypto.generateKeyPairSync('rsa', ...)
+      - pattern: crypto.generateKeyPair('ec', ...)
+      - pattern: crypto.generateKeyPairSync('ec', ...)
+
+  # ---------- classical crypto misuse (exploitable today) ----------
+  - id: qm-weak-hash-md5-sha1
+    languages: [python, javascript, typescript]
+    severity: ERROR
+    message: "Broken hash (MD5/SHA-1) used for security. Use SHA-256+ (or a real KDF for passwords)."
+    metadata: {cwe: "CWE-327", qm_kind: misuse, qm_category: grover_weakened}
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+      - pattern: crypto.createHash('md5')
+      - pattern: crypto.createHash('sha1')
+
+  - id: qm-ecb-mode
+    languages: [python, javascript, typescript]
+    severity: ERROR
+    message: "ECB block-cipher mode leaks plaintext structure. Use an AEAD mode (AES-GCM)."
+    metadata: {cwe: "CWE-327", qm_kind: misuse, qm_category: grover_weakened}
+    pattern-either:
+      - pattern: modes.ECB(...)
+      - pattern: AES.new($K, AES.MODE_ECB, ...)
+      - pattern: crypto.createCipheriv("=~/.*-ecb/i", ...)
+
+  - id: qm-weak-random-for-secrets
+    languages: [python, javascript, typescript]
+    severity: WARNING
+    message: "Weak RNG for security material. Use secrets / os.urandom / crypto.randomBytes."
+    metadata: {cwe: "CWE-330", qm_kind: misuse, qm_category: unknown}
+    pattern-either:
+      - pattern: random.random()
+      - pattern: random.randint(...)
+      - pattern: Math.random()
+
+  - id: qm-hardcoded-secret
+    languages: [generic]
+    severity: ERROR
+    message: "Hardcoded secret/key in source — invisible on the wire, catastrophic if leaked."
+    metadata: {cwe: "CWE-798", qm_kind: misuse, qm_category: unknown}
+    patterns:
+      - pattern-regex: "(?i)\\b[a-z0-9_]*(secret|api_?key|passwd|password|private_?key|access_?token|auth_?token|token)[a-z0-9_]*\\s*[=:]\\s*[\"'][A-Za-z0-9_/+=.\\-]{8,}[\"']"

@@ -74,7 +74,13 @@ CREATE TABLE IF NOT EXISTS finding (
     cwe          TEXT,
     title        TEXT NOT NULL,
     severity     TEXT,                          -- 'critical'|'high'|'medium'|'low'
+    file_path    TEXT,
+    line         INT,
     explanation  TEXT,
     suggested_fix TEXT,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- idempotent migrations (so an already-created DB picks up new columns)
+ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS file_path TEXT;
+ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS line INT;

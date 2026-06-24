@@ -16,8 +16,10 @@ from pydantic import BaseModel
 
 from . import db
 from .config import CORS_ORIGINS
+from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
+from .scanners.whitebox.discover import discover
 
 
 @asynccontextmanager
@@ -121,6 +123,43 @@ async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     )
 
 
+async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
+    """Code scan: clone/scan a repo -> persist quantum-vulnerable crypto as
+    crypto_asset (inventory) and classical-misuse bugs as finding rows."""
+    con = db.pool()
+    findings = await asyncio.to_thread(discover, target)
+    pqc = misuse = 0
+    for f in findings:
+        if f.kind == "pqc_vulnerable":
+            asset_id = await con.fetchval(
+                """INSERT INTO crypto_asset
+                   (org_id, scan_id, source, file_path, line, pubkey_algo, category,
+                    est_time_to_break, hndl_risk)
+                   VALUES ($1,$2,'code_dep',$3,$4,$5,$6,$7,'medium') RETURNING id""",
+                org_id, scan_id, f.file_path, f.line, f.algo, f.category,
+                est_time_to_break(f.algo, None),
+            )
+            await con.execute(
+                "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
+                "ON CONFLICT (asset_id) DO NOTHING",
+                asset_id,
+            )
+            pqc += 1
+        else:
+            await con.execute(
+                """INSERT INTO finding
+                   (org_id, cwe, title, severity, file_path, line, explanation)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7)""",
+                org_id, f.cwe, f.message[:140], f.severity, f.file_path, f.line, f.message,
+            )
+            misuse += 1
+    await con.execute(
+        "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
+        scan_id,
+        json.dumps({"pqc_vulnerable": pqc, "misuse_findings": misuse, "total": len(findings)}),
+    )
+
+
 # ---------- routes ----------
 @app.get("/health")
 async def health():
@@ -138,8 +177,7 @@ async def create_scan(req: ScanRequest, bg: BackgroundTasks):
     if req.mode == "black_box":
         bg.add_task(_run_blackbox_scan, scan_id, org_id, req.target)
     else:
-        # TODO: white-box discover -> reason -> remediate pipeline.
-        await con.execute("UPDATE scan SET status='done', finished_at=now() WHERE id=$1", scan_id)
+        bg.add_task(_run_whitebox_scan, scan_id, org_id, req.target)
     return {"scan_id": str(scan_id), "org_id": str(org_id), "status": "running"}
 
 
