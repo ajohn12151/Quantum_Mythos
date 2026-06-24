@@ -51,6 +51,7 @@ def get_repo(target: str) -> tuple[pathlib.Path, bool]:
 # Skip non-production code so findings reflect real source, not test/doc noise.
 _EXCLUDE = ["tests", "test", "__tests__", "docs", "doc",
             "benchmark", "benchmarks", "vendor", "node_modules", "fixtures",
+            "deps", "third_party", "third-party",   # vendored deps aren't the project's code
             "*.min.js", "*_test.py", "test_*.py", "*.test.js"]
 
 
