@@ -23,6 +23,7 @@ from . import db
 from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
+from .scanners.blackbox.ssh import scan_ssh
 from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover, run_semgrep
 from .scanners.whitebox.github_pr import open_pr
@@ -125,19 +126,30 @@ async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
 
     results = await asyncio.gather(*(scan_one(h) for h in candidates))
 
-    found = 0
+    found = no_fs = 0
     for host, facts in results:
         if facts.error:
             continue
         source = "tls" if host in requested else "ct_log"   # 'ct_log' = shadow find
         await _persist_asset(con, scan_id, org_id, host, facts, source)
         found += 1
+        if facts.forward_secrecy is False:
+            no_fs += 1
+
+    # SSH host keys on the apex (the server advertises them on connect).
+    ssh_found = 0
+    for skf in await asyncio.to_thread(scan_ssh, apex):
+        await _persist_asset(con, scan_id, org_id, skf.host, skf, "ssh")
+        ssh_found += 1
 
     await con.execute(
         "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
         scan_id,
         json.dumps({
-            "assets_found": found,
+            "assets_found": found + ssh_found,
+            "tls_hosts": found,
+            "ssh_host_keys": ssh_found,
+            "no_forward_secrecy": no_fs,
             "hosts_scanned": len(candidates),
             "shadow_hosts_discovered": len(discovered),
             "ct_log_hits": len(ct_hosts),

@@ -70,6 +70,11 @@ def scan_tls(host: str, port: int = 443, timeout: float = 8.0) -> TlsCryptoFacts
     ctx = ssl.create_default_context()
     ctx.check_hostname = False          # we inspect crypto, not validate trust
     ctx.verify_mode = ssl.CERT_NONE
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    try:                                # a scanner must probe legacy/no-FS ciphers,
+        ctx.set_ciphers("ALL:@SECLEVEL=0")   # not just what a modern client offers
+    except ssl.SSLError:
+        pass
     try:
         with socket.create_connection((host, port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
