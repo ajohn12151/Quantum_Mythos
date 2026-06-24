@@ -23,6 +23,7 @@ from . import db
 from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
+from .scanners.blackbox.mail import scan_mail
 from .scanners.blackbox.ssh import scan_ssh
 from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover, run_semgrep
@@ -142,13 +143,20 @@ async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
         await _persist_asset(con, scan_id, org_id, skf.host, skf, "ssh")
         ssh_found += 1
 
+    # Mail servers (MX) via SMTP STARTTLS — same crypto, prime HNDL target.
+    mail_found = 0
+    for mf in await asyncio.to_thread(scan_mail, apex):
+        await _persist_asset(con, scan_id, org_id, mf.host, mf, "mail")
+        mail_found += 1
+
     await con.execute(
         "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
         scan_id,
         json.dumps({
-            "assets_found": found + ssh_found,
+            "assets_found": found + ssh_found + mail_found,
             "tls_hosts": found,
             "ssh_host_keys": ssh_found,
+            "mail_servers": mail_found,
             "no_forward_secrecy": no_fs,
             "hosts_scanned": len(candidates),
             "shadow_hosts_discovered": len(discovered),

@@ -66,50 +66,67 @@ def _forward_secrecy(tls_version: str | None, cipher_name: str) -> bool | None:
     return None
 
 
-def scan_tls(host: str, port: int = 443, timeout: float = 8.0) -> TlsCryptoFacts:
+def scan_context() -> ssl.SSLContext:
+    """A scanner context: don't validate trust (we inspect crypto), and probe
+    legacy/no-FS ciphers a modern client would otherwise refuse."""
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False          # we inspect crypto, not validate trust
+    ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-    try:                                # a scanner must probe legacy/no-FS ciphers,
-        ctx.set_ciphers("ALL:@SECLEVEL=0")   # not just what a modern client offers
+    try:
+        ctx.set_ciphers("ALL:@SECLEVEL=0")
     except ssl.SSLError:
         pass
+    return ctx
+
+
+def facts_from_ssl_sock(ssock, host: str, port: int) -> TlsCryptoFacts:
+    """Extract crypto facts from an already-wrapped TLS socket. Shared by the
+    direct TLS scanner and the mail STARTTLS scanner."""
+    der = ssock.getpeercert(binary_form=True)
+    tls_version = ssock.version()
+    cipher_tuple = ssock.cipher()  # (name, protocol, secret_bits)
+    cert = x509.load_der_x509_certificate(der)
+    pubkey_algo, key_bits, curve = _describe_key(cert.public_key())
+    try:
+        sig_algo = cert.signature_algorithm_oid._name
+    except Exception:
+        sig_algo = None
+    cipher_name = cipher_tuple[0] if cipher_tuple else ""
+    fs = _forward_secrecy(tls_version, cipher_name)
+    category = classify_pubkey(pubkey_algo)
+    try:
+        ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+        san = sorted({n.lower() for n in ext.value.get_values_for_type(x509.DNSName)})
+    except Exception:
+        san = []
+    return TlsCryptoFacts(
+        host=host, port=port,
+        pubkey_algo=pubkey_algo, key_bits=key_bits, curve=curve, sig_algo=sig_algo,
+        tls_version=tls_version, cipher=cipher_name or None, forward_secrecy=fs,
+        category=category,
+        est_time_to_break=est_time_to_break(pubkey_algo, key_bits),
+        hndl_risk=hndl_risk(category, fs),
+        san=san,
+    )
+
+
+def error_facts(host: str, port: int, msg: str) -> TlsCryptoFacts:
+    return TlsCryptoFacts(
+        host=host, port=port, pubkey_algo="unknown", key_bits=None, curve=None,
+        sig_algo=None, tls_version=None, cipher=None, forward_secrecy=None,
+        category="unknown", est_time_to_break="", hndl_risk="low", error=msg,
+    )
+
+
+def scan_tls(host: str, port: int = 443, timeout: float = 8.0) -> TlsCryptoFacts:
+    ctx = scan_context()
     try:
         with socket.create_connection((host, port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
-                der = ssock.getpeercert(binary_form=True)
-                tls_version = ssock.version()
-                cipher_tuple = ssock.cipher()  # (name, protocol, secret_bits)
-        cert = x509.load_der_x509_certificate(der)
-        pubkey_algo, key_bits, curve = _describe_key(cert.public_key())
-        try:
-            sig_algo = cert.signature_algorithm_oid._name
-        except Exception:
-            sig_algo = None
-        cipher_name = cipher_tuple[0] if cipher_tuple else ""
-        fs = _forward_secrecy(tls_version, cipher_name)
-        category = classify_pubkey(pubkey_algo)
-        try:
-            ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
-            san = sorted({n.lower() for n in ext.value.get_values_for_type(x509.DNSName)})
-        except Exception:
-            san = []
-        return TlsCryptoFacts(
-            host=host, port=port,
-            pubkey_algo=pubkey_algo, key_bits=key_bits, curve=curve, sig_algo=sig_algo,
-            tls_version=tls_version, cipher=cipher_name or None, forward_secrecy=fs,
-            category=category,
-            est_time_to_break=est_time_to_break(pubkey_algo, key_bits),
-            hndl_risk=hndl_risk(category, fs),
-            san=san,
-        )
+                return facts_from_ssl_sock(ssock, host, port)
     except Exception as e:  # failure mode is a recorded error, never a crash
-        return TlsCryptoFacts(
-            host=host, port=port, pubkey_algo="unknown", key_bits=None, curve=None,
-            sig_algo=None, tls_version=None, cipher=None, forward_secrecy=None,
-            category="unknown", est_time_to_break="", hndl_risk="low", error=str(e),
-        )
+        return error_facts(host, port, str(e))
 
 
 if __name__ == "__main__":
