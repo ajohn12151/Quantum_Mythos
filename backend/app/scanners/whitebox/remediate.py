@@ -27,8 +27,15 @@ def _fix_line(line: str, rule_id: str, rel: str) -> tuple[str | None, str, str |
     """Return (new_line | None, description, import_needed | None)."""
     is_py = rel.endswith(".py")
     is_js = rel.endswith((".js", ".ts", ".jsx", ".tsx"))
+    is_go = rel.endswith(".go")
 
     if "weak-hash" in rule_id:
+        if is_go:
+            new = re.sub(r"\b(md5|sha1)\.New\(\)", "sha256.New()", line)
+            new = re.sub(r"\b(md5|sha1)\.Sum\(", "sha256.Sum256(", new)
+            if new != line:
+                return new, "MD5/SHA-1 -> SHA-256", 'import "crypto/sha256"'
+            return None, "", None
         new = re.sub(r"\bmd5\b", "sha256", line)
         new = re.sub(r"\bsha1\b", "sha256", new)
         return new, "MD5/SHA-1 -> SHA-256 (use a KDF e.g. argon2 for passwords)", None
@@ -63,14 +70,28 @@ def _fix_line(line: str, rule_id: str, rel: str) -> tuple[str | None, str, str |
                          "cryptoProvider.generatePqcKeyPair()", line)
             if new != line:
                 return new, "RSA/EC -> cryptoProvider (PQC ML-KEM)", "const cryptoProvider = require('./crypto_provider')"
+        if is_go:
+            new = re.sub(r"(rsa|ecdsa|ed25519|dsa)\.GenerateKey\(.*\)",
+                         "cryptoagility.GeneratePQCKeyPair()", line)
+            if new != line:
+                return new, "RSA/EC -> cryptoagility (PQC ML-KEM)", \
+                    'import cryptoagility "github.com/quantum-mythos/cryptoagility"'
 
     return None, "", None   # ECB/mode changes etc. are NOT auto-rewritten (unsafe)
 
 
-def _ensure_imports(lines: list[str], imports: set[str]) -> list[str]:
+def _ensure_imports(lines: list[str], imports: set[str], rel: str) -> list[str]:
+    if not imports:
+        return lines
     existing = "".join(lines)
     add = [imp + "\n" for imp in sorted(imports) if imp not in existing]
-    return add + lines if add else lines
+    if not add:
+        return lines
+    if rel.endswith(".go"):                      # Go imports must follow 'package X'
+        for i, ln in enumerate(lines):
+            if ln.strip().startswith("package "):
+                return lines[:i + 1] + ["\n"] + add + lines[i + 1:]
+    return add + lines
 
 
 _NOTE = ("Deterministic, review-gated. Crypto primitives delegated to a verified "
@@ -100,7 +121,7 @@ def _patch_file(path: pathlib.Path, rel: str, fs) -> tuple[list[str], list[str],
             applied.append(f"{rel}:{f.line}  {desc}")
             if imp:
                 imports.add(imp)
-    return original, _ensure_imports(patched, imports), applied
+    return original, _ensure_imports(patched, imports, rel), applied
 
 
 def propose_fixes(repo_path: pathlib.Path, findings) -> list[FileFix]:
