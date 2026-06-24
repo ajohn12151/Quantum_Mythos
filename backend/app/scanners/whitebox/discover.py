@@ -41,10 +41,14 @@ def get_repo(target: str) -> tuple[pathlib.Path, bool]:
     if p.exists():
         return p, False
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="qm_repo_"))
-    subprocess.run(
-        ["git", "clone", "--depth", "1", target, str(tmp)],
-        check=True, capture_output=True, timeout=120,
-    )
+    try:
+        subprocess.run(
+            ["git", "clone", "--depth", "1", target, str(tmp)],
+            check=True, capture_output=True, timeout=120,
+        )
+    except Exception:
+        subprocess.run(["rm", "-rf", str(tmp)], check=False)   # don't leak the temp dir
+        raise
     return tmp, True
 
 
