@@ -69,3 +69,32 @@ rules:
       - pattern-regex: "AIza[0-9A-Za-z_\\-]{35}"
       - pattern-regex: "xox[baprs]-[0-9A-Za-z-]{10,}"
       - pattern-regex: "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+
+  # ---------- Go (the cloud-native giants: Kubernetes, Terraform, etcd, Vault) ----------
+  - id: qm-go-rsa-keygen
+    languages: [go]
+    severity: WARNING
+    message: "Quantum-vulnerable RSA key generation (Shor-breakable). Inventory for PQC migration."
+    metadata: {cwe: "CWE-327", qm_kind: pqc_vulnerable, qm_category: shor_broken, qm_algo: RSA}
+    pattern: rsa.GenerateKey(...)
+
+  - id: qm-go-ec-keygen
+    languages: [go]
+    severity: WARNING
+    message: "Quantum-vulnerable elliptic-curve key generation (Shor-breakable). Inventory for PQC migration."
+    metadata: {cwe: "CWE-327", qm_kind: pqc_vulnerable, qm_category: shor_broken, qm_algo: ECDSA/EdDSA/DSA}
+    pattern-either:
+      - pattern: ecdsa.GenerateKey(...)
+      - pattern: ed25519.GenerateKey(...)
+      - pattern: dsa.GenerateKey(...)
+
+  - id: qm-go-weak-hash
+    languages: [go]
+    severity: ERROR
+    message: "Broken hash (MD5/SHA-1) for security. Use SHA-256+."
+    metadata: {cwe: "CWE-327", qm_kind: misuse, qm_category: grover_weakened}
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: md5.Sum(...)
+      - pattern: sha1.New()
+      - pattern: sha1.Sum(...)
