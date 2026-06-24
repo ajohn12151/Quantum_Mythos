@@ -1166,6 +1166,138 @@
     "stripped": false
   },
   {
+    "binary": "go_ecdsa__macho-arm64__go__static__strip",
+    "source": "go_ecdsa/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "go_ecdsa__macho-arm64__go__static__sym",
+    "source": "go_ecdsa/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "go_ed25519__macho-arm64__go__static__strip",
+    "source": "go_ed25519/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "Ed25519"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "go_ed25519__macho-arm64__go__static__sym",
+    "source": "go_ed25519/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "Ed25519"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "go_noncrypto__macho-arm64__go__static__strip",
+    "source": "go_noncrypto/main.go",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "go_noncrypto__macho-arm64__go__static__sym",
+    "source": "go_noncrypto/main.go",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "go_rsa__macho-arm64__go__static__strip",
+    "source": "go_rsa/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "go_rsa__macho-arm64__go__static__sym",
+    "source": "go_rsa/main.go",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "go_symmetric__macho-arm64__go__static__strip",
+    "source": "go_symmetric/main.go",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "go_symmetric__macho-arm64__go__static__sym",
+    "source": "go_symmetric/main.go",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "go",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
     "binary": "rsa_keygen__elf-x86_64__clang-O0__dynamic__sym",
     "source": "rsa_keygen.c",
     "present_asymmetric": true,

@@ -42,9 +42,9 @@ def main() -> int:
         print(f"{lab['binary']:12s} {str(truth):6s} {str(pred):6s} {f.confidence:5s} {ok:3s}  {detail}")
 
     print(f"\n  tp={tp} fp={fp} fn={fn} tn={tn}" + (f"  ({missing} missing)" if missing else ""))
-    print("\n  Note: rw_docker is the deliberately-included HARD CASE (Go static,")
-    print("  self-implemented crypto). A false negative here is EXPECTED and honest —")
-    print("  it marks the boundary of what Tier A/B can see. See labels.json.")
+    print("\n  Note: rw_docker is a Go static binary (self-implemented crypto, no")
+    print("  OpenSSL). It is now DETECTED via the Go symbol path. A go build -s -w")
+    print("  (fully stripped) Go binary would still be missed — the gopclntab gap.")
     return 0
 
 

@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.scanners.binary.qv_apis import match_families  # noqa: E402
+from app.scanners.binary.qv_apis import looks_like_go, match_families  # noqa: E402
 from app.scanners.binary.tier_a_symbols import normalize  # noqa: E402
 
 
@@ -53,6 +53,26 @@ def test_symmetric_is_not_asymmetric():
 def test_no_false_positive_on_common_words():
     # 'EC'/'DH'/'DSA' as substrings of unrelated symbols must not match.
     assert _fams("execve", "fdopen", "update_widths", "decode_header") == set()
+
+
+def test_go_packages():
+    # Go symbol = package path; map to the right family.
+    assert _fams("crypto/rsa.GenerateKey") == {"RSA"}
+    assert _fams("crypto/ecdsa.(*PrivateKey).Sign") == {"ECDSA"}
+    assert _fams("crypto/ed25519.Sign") == {"Ed25519"}
+    assert _fams("crypto/elliptic.P256") == {"ECC"}
+    assert _fams("crypto/ecdh.(*PrivateKey).ECDH") == {"ECDH"}
+
+
+def test_go_symmetric_not_flagged():
+    # Go symmetric/hash packages must NOT register as asymmetric.
+    assert _fams("crypto/aes.newCipher", "crypto/sha256.block",
+                 "crypto/hmac.New", "crypto/rand.Read") == set()
+
+
+def test_looks_like_go():
+    assert looks_like_go({"runtime.main", "crypto/rsa.GenerateKey"})
+    assert not looks_like_go({"main", "EVP_PKEY_keygen", "RSA_new"})
 
 
 def test_normalize():

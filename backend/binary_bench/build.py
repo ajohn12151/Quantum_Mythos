@@ -31,6 +31,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CORPUS = HERE / "corpus"
+CORPUS_GO = HERE / "corpus_go"
 BIN = HERE / "bin"
 GROUND_TRUTH = HERE / "ground_truth.json"
 
@@ -152,8 +153,54 @@ def build_macho(records: list[dict]) -> None:
     print(f"Mach-O build failures: {fails}")
 
 
+# --- Go build (native; static; self-implemented crypto, no OpenSSL) ----------
+# Go is the cloud-native reality: static, often "stripped". Its symbol = the
+# package path (crypto/ecdsa.*), and the linker dead-code-eliminates unused
+# packages, so symbol presence ~ use. `-s -w` removes the standard symbol table
+# (the gopclntab-only case Tier A cannot yet read).
+GO_SOURCE_META = {
+    "go_ecdsa":     {"present": True,  "families": ["ECDSA"]},
+    "go_rsa":       {"present": True,  "families": ["RSA"]},
+    "go_ed25519":   {"present": True,  "families": ["Ed25519"]},
+    "go_symmetric": {"present": False, "families": []},   # AES/SHA only
+    "go_noncrypto": {"present": False, "families": []},
+}
+
+
+def build_go(records: list[dict]) -> None:
+    if shutil.which("go") is None or not CORPUS_GO.exists():
+        print("!! go toolchain or corpus_go missing; skipping Go", file=sys.stderr)
+        return
+    print("=== building Go matrix natively (arm64, static) ===")
+    fails = 0
+    for src, meta in GO_SOURCE_META.items():
+        pkg = CORPUS_GO / src
+        if not pkg.exists():
+            continue
+        for stripped in (False, True):
+            sym = "strip" if stripped else "sym"
+            name = f"{src}__macho-arm64__go__static__{sym}"
+            cmd = ["go", "build", "-o", str(BIN / name)]
+            if stripped:
+                cmd += ["-ldflags", "-s -w"]
+            cmd += ["./" + src]
+            r = subprocess.run(cmd, cwd=CORPUS_GO, capture_output=True, text=True,
+                               env={**__import__("os").environ, "CGO_ENABLED": "0"})
+            if r.returncode != 0 or not (BIN / name).exists():
+                print(f"FAIL {name}: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else '?'}")
+                fails += 1
+                continue
+            print(f"OK {name}")
+            rec = _record(name, src, "macho", "arm64", "go", "0", "static", stripped)
+            rec["present_asymmetric"] = meta["present"]
+            rec["families"] = meta["families"]
+            rec["source"] = f"{src}/main.go"
+            records.append(rec)
+    print(f"Go build failures: {fails}")
+
+
 def _record(name, src, fmt, arch, compiler, opt, linkage, stripped) -> dict:
-    meta = SOURCE_META[src]
+    meta = SOURCE_META.get(src, {"present": False, "families": []})
     return {
         "binary": name,
         "source": f"{src}.c",
@@ -172,6 +219,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--elf-only", action="store_true")
     ap.add_argument("--macho-only", action="store_true")
+    ap.add_argument("--go-only", action="store_true")
     ap.add_argument("--clean", action="store_true", help="wipe bin/ first")
     args = ap.parse_args()
 
@@ -180,10 +228,13 @@ def main() -> int:
     BIN.mkdir(exist_ok=True)
 
     records: list[dict] = []
-    if not args.macho_only:
+    only = args.elf_only or args.macho_only or args.go_only
+    if args.elf_only or not only:
         build_elf(records)
-    if not args.elf_only:
+    if args.macho_only or not only:
         build_macho(records)
+    if args.go_only or not only:
+        build_go(records)
 
     records.sort(key=lambda r: r["binary"])
     GROUND_TRUTH.write_text(json.dumps(records, indent=2) + "\n")

@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 
 import lief
 
-from .qv_apis import CRYPTO_LIBRARY_HINTS, match_families
+from .qv_apis import CRYPTO_LIBRARY_HINTS, looks_like_go, match_families
 
 # LIEF 0.12 prints "Command 'DYLD_CHAINED_FIXUPS' not parsed!" to stderr for modern
 # Mach-O load commands it doesn't model. Those commands are irrelevant to symbol
@@ -132,6 +132,20 @@ def analyze(path: str) -> TierAResult:
     defined = _defined_names(b)
     defined_families = match_families(defined)
     res.defined_families = defined_families
+
+    # --- Go binary: symbol = package path, and Go's linker dead-code-eliminates
+    # unused functions, so a retained crypto/<primitive> symbol is meaningful
+    # (linked-and-callable), unlike C static over-linking. High confidence, and we
+    # skip Tier C (Go's interface/closure dispatch defeats a direct-call graph).
+    if defined_families and looks_like_go(defined):
+        res.decision = "asymmetric_go"
+        res.confidence = "high"
+        res.families = sorted(defined_families)
+        res.evidence = [f"go-sym:{defined_families[fam][0]}" for fam in res.families][:6]
+        res.note = ("Go std-lib crypto symbols present; Go linker DCE means a "
+                    "retained symbol is linked and callable (presence ~ use). "
+                    "Stripped (-s -w) Go binaries lose these — needs gopclntab.")
+        return res
 
     # --- dynamic crypto consumer, but NO asymmetric import -------------------
     # e.g. a program that links libcrypto only for AES/SHA. We can see all of its

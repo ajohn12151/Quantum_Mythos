@@ -21,7 +21,7 @@
     "present_asymmetric": true,
     "families": ["ECDSA", "RSA", "ECDH"],
     "linkage": "static",
-    "note": "HARD CASE. Go static binary, stripped. Verified to contain crypto/ecdsa, crypto/rsa, crypto/elliptic/nistec_p256 and TLS_ECDHE_ECDSA cipher suites via embedded source paths + strings. NO crypto dylib, NO OpenSSL symbols, and Go's P-256 is stored in a non-OpenSSL representation so curve-constant matching misses it. EXPECTED FALSE NEGATIVE — the genuine blind spot."
+    "note": "Go static binary (go build, symbol table intact). Contains crypto/ecdsa, crypto/rsa, crypto/ed25519, crypto/elliptic. NOW DETECTED via the Go symbol path (qv_apis Go patterns + looks_like_go): NO OpenSSL symbols/constants, but the Go package-path symbols (crypto/ecdsa.*, crypto/rsa.*) are present and the linker's dead-code elimination means they are linked-and-callable. Expect HIGH-confidence detection. (A go build -ldflags=\"-s -w\" build would strip these and currently be missed — the gopclntab gap.)"
   },
   {
     "binary": "rw_ls",

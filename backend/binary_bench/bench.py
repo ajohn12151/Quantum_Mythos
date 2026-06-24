@@ -107,6 +107,19 @@ def main() -> int:
         print(f"{label:22s} {len(sub):>3} {pos:>3}  {cs['recall']:>8} "
               f"{co['recall']:>8} {co['precision']:>8}")
 
+    # --- by toolchain (call out Go specifically) -----------------------------
+    print("\n## By toolchain  — OPERATIONAL P / R\n")
+    print(f"{'toolchain':12s} {'n':>3} {'pos':>3}  {'operP':>7} {'operR':>7}")
+    tool = defaultdict(list)
+    for r in rows:
+        tool["go" if r["compiler"] == "go" else "c/c++"].append(r)
+    for key in sorted(tool):
+        sub = tool[key]
+        pos = sum(s["present_asymmetric"] for s in sub)
+        co = confusion(sub, operational)
+        out.setdefault("by_toolchain", {})[key] = {"n": len(sub), "pos": pos, "operational": co}
+        print(f"{key:12s} {len(sub):>3} {pos:>3}  {co['precision']:>7} {co['recall']:>7}")
+
     # --- family attribution on HIGH-confidence subset -----------------------
     print("\n## Family attribution (HIGH-confidence / dynamic detections only)\n")
     fam_tot = fam_ok = 0

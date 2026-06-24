@@ -34,16 +34,21 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         # mbedTLS / wolfSSL
         r"(?:^|_)mbedtls_rsa_",
         r"(?:^|_)wc_Rsa",
+        # Go std lib (symbol = package path; matched on defined symbols, see note)
+        r"\bcrypto/rsa\.",
     ],
     "ECDSA": [
         r"(?:^|_)ECDSA_",               # ECDSA_do_sign, ECDSA_sign, ECDSA_SIG_*
         r"(?:^|_)mbedtls_ecdsa_",
         r"(?:^|_)wc_ecc_(?:sign|verify)",
+        r"\bcrypto/ecdsa\.",            # Go
     ],
     "ECDH": [
         r"(?:^|_)ECDH_",                # ECDH_compute_key
         r"EVP_PKEY_derive\b",           # generic ECDH/DH derive (ambiguous; see note)
         r"(?:^|_)mbedtls_ecdh_",
+        r"\bcrypto/ecdh\.",             # Go (incl. X25519)
+        r"golang\.org/x/crypto/curve25519",
     ],
     "ECC": [
         # Generic elliptic-curve machinery: present for EC keygen and any EC scheme.
@@ -54,6 +59,9 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         r"(?:i2d|d2i|o2i)_EC",
         r"(?:^|_)mbedtls_ecp_",
         r"(?:^|_)wc_ecc_",
+        # Go elliptic-curve machinery
+        r"\bcrypto/elliptic\.",
+        r"\bcrypto/internal/(?:fips140/)?nistec\b",
     ],
     "DH": [
         r"(?:^|_)DH_",                  # DH_new, DH_generate_key, DH_compute_key
@@ -64,8 +72,28 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
     "DSA": [
         r"(?:^|_)DSA_",                 # DSA_new, DSA_do_sign, DSA_generate_key
         r"EVP_PKEY_CTX_set_dsa_",
+        r"\bcrypto/dsa\.",              # Go
+    ],
+    "Ed25519": [
+        # EdDSA over edwards25519 — Shor-broken like the rest.
+        r"\bcrypto/ed25519\.",                              # Go
+        r"\bcrypto/internal/(?:fips140/)?edwards25519\b",   # Go internal
+        r"golang\.org/x/crypto/ed25519",
+        r"EVP_PKEY_ED25519",                                # OpenSSL EVP id
+        r"(?:^|_)ED25519_(?:sign|verify|keypair)",          # BoringSSL/OpenSSL
     ],
 }
+
+# Distinctive markers that a binary was produced by the Go toolchain. Used by
+# Tier A to decide that a retained crypto/* symbol is meaningful: the Go linker
+# does function-level dead-code elimination, so a symbol that survived into the
+# binary is (very likely) reachable — unlike C static linking, which pulls whole
+# object files and leaves dead code behind.
+_GO_MARKERS = ("runtime.", "go:", "internal/poll.", "runtime/internal")
+
+
+def looks_like_go(symbol_names: set[str]) -> bool:
+    return any(any(n.startswith(m) for m in _GO_MARKERS) for n in symbol_names)
 
 # Compile once.
 _COMPILED: dict[str, list[re.Pattern]] = {

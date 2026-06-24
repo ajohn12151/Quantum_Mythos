@@ -1,7 +1,8 @@
 # Binary tier — detecting quantum-vulnerable asymmetric crypto in compiled binaries
 
-Detects **RSA / ECC / ECDSA / ECDH / DH / DSA** (all Shor-broken) inside compiled
-**ELF / PE / Mach-O** binaries with no source. Third scanner mode alongside
+Detects **RSA / ECC / ECDSA / ECDH / DH / DSA / Ed25519** (all Shor-broken) inside
+compiled **ELF / PE / Mach-O** binaries with no source, across the **OpenSSL/wolfSSL/
+mbedTLS (C/C++)** and **Go std-lib** ecosystems. Third scanner mode alongside
 `blackbox/` (over-the-wire) and `whitebox/` (source). Reports through the shared
 `blackbox/classify.py` risk taxonomy (`shor_broken / grover_weakened / pqc`).
 
@@ -35,12 +36,15 @@ That boundary is exactly what our benchmark measures, rather than asserts.
 
 ## Benchmark (built first — every claim is measured)
 
+`corpus_go/` — 5 tiny Go programs (3 asymmetric positives: ecdsa/rsa/ed25519, 2
+controls incl. a symmetric-only AES/SHA trap), built static, default vs `-s -w`.
+
 `corpus/` — 9 tiny C programs: 6 positives (one per family, real OpenSSL calls) +
 3 controls. The key control is `ctrl_aes_sha.c`: it **links libcrypto and does real
 crypto, but only symmetric (AES) + hash (SHA)** — the precision trap that separates
 "links OpenSSL" from "uses asymmetric crypto".
 
-`build.py` compiles a variant matrix — **99 binaries**:
+`build.py` compiles a variant matrix — **109 binaries** (99 C/C++ + 10 Go):
 - **ELF x86-64** (54) in Docker (`debian:bookworm` + OpenSSL, `--platform linux/amd64`).
 - **Mach-O arm64** (45) natively with host clang + homebrew OpenSSL.
 - Axes: gcc/clang × `-O0`/`-O3` × **dynamic/static** × **symbols/stripped**.
@@ -63,6 +67,13 @@ realworld/setup_realworld.sh && python3 run_realworld.py
   opcodes). On static binaries there are no imports; the whole library is linked in,
   so symbol *presence* ≠ use → reported as **low-confidence "inconclusive (static
   over-linking)"**, not a fake detection.
+  Tier A also covers **Go** binaries: a Go symbol *is* the package path
+  (`crypto/ecdsa.(*PrivateKey).Sign`), and the Go linker dead-code-eliminates unused
+  packages, so a retained `crypto/<primitive>` symbol is linked-and-callable
+  (presence ≈ use, unlike C static over-linking). `looks_like_go` (runtime markers)
+  gates this to HIGH confidence and skips Tier C (Go's interface/closure dispatch
+  defeats a direct-call graph). `go build -ldflags="-s -w"` removes the symbol table
+  and is currently missed — see the gopclntab gap in limitations.
 - **Tier B — curve constants.** Scan the image for fixed standard-curve parameters
   (P-256/384/521, secp256k1, Curve25519). Recovers an **ECC-only** signal on
   static+stripped binaries where Tier A is blind. Presence-only; constant-blind to
@@ -82,35 +93,44 @@ realworld/setup_realworld.sh && python3 run_realworld.py
 - **Fusion (`scan.py`)** → HIGH (Tier A imports, or Tier C proven-reachable) / LOW
   (static presence when Tier C can't run) / NONE (incl. Tier C proven-unreachable).
 
-## Measured results (this machine, 99-binary matrix)
+## Measured results (this machine, 109-binary matrix)
 
-Two operating policies — STRICT counts only HIGH-confidence (import) detections;
-OPERATIONAL also counts LOW-confidence static-presence flags:
+Matrix: 99 C/C++ (Docker x86-64 ELF + native arm64 Mach-O, OpenSSL) + 10 Go (native
+arm64, static, default vs `-s -w`). Two policies — STRICT counts only HIGH-confidence
+detections (imports / Go symbols / Tier C reachability); OPERATIONAL also counts
+LOW-confidence static-presence flags:
 
 | Policy | Precision | Recall | F1 |
 |---|---|---|---|
-| STRICT | **1.00** | 0.909 | 0.952 |
-| OPERATIONAL | 0.985 | **1.00** | 0.992 |
+| STRICT | **1.00** | 0.875 | 0.933 |
+| OPERATIONAL | 0.986 | 0.958 | 0.972 |
 
-Per cell (where the honest story lives):
+By toolchain:
+
+| Toolchain | n | Operational precision | Operational recall |
+|---|---|---|---|
+| C/C++ (OpenSSL) | 99 | 0.985 | **1.00** |
+| Go | 10 | **1.00** | 0.50 |
+
+Per cell:
 
 | Cell | Strict recall | Operational recall | Operational precision |
 |---|---|---|---|
 | dynamic / symbols | 1.00 | 1.00 | 1.00 |
 | dynamic / **stripped** | **1.00** | 1.00 | 1.00 |
 | static / symbols | **1.00** | 1.00 | **1.00** |
-| static / **stripped** | 0.50 | 1.00 | 0.923 |
+| static / **stripped** | 0.40 | 0.80 | 0.923 |
 
-Tier C is what moved static/symbols from (strict R 0.00, oper P 0.857) to
-(1.00, 1.00): proven-reachable RSA/EC/… upgrade to HIGH with the correct family,
-and the symmetric-only `aes_sha` static binaries are proven *unreachable* and
-dropped. Strict recall rose 0.636 → 0.909 overall; the only positives still below
-HIGH confidence are the 6 fully-symbol-stripped **ELF** static binaries.
-
-- **Family attribution on the high-confidence subset: 60/60 = 100%** (now incl.
-  static binaries resolved by Tier C reachability).
-- **Real-world:** `openssl`, `ssh` → high-confidence correct; `ls`, `true` → clean
-  negatives; **Go static `docker` → false negative (expected, see below).**
+- **Go precision is 1.00**: the symmetric-only Go control (`crypto/aes`+`crypto/sha256`)
+  is correctly *not* flagged — Go's DCE never links the asymmetric packages, a
+  *cleaner* negative than C static linking. **Go recall is 0.50**: the misses are
+  exactly the three `-s -w` stripped Go binaries (no symbol table) — the gopclntab
+  gap. Default `go build` Go binaries are all caught with correct families.
+- **Family attribution on the high-confidence subset: 63/63 = 100%** (incl. static
+  via Tier C reachability and Go via symbols).
+- **Real-world: tp=3 fp=0 fn=0 tn=2.** `openssl`, `ssh` → high-confidence (imports);
+  **Go `docker` → high-confidence via `go-symbol`** (was the prior false negative,
+  now fixed by Go coverage); `ls`, `true` → clean negatives.
 
 ### Reading these numbers honestly
 
@@ -136,21 +156,26 @@ HIGH confidence are the 6 fully-symbol-stripped **ELF** static binaries.
    EC curve tables, which Tier B matches. A static+stripped RSA binary built against
    a curve-free RSA library would be **missed**. Genuine RSA-in-static-stripped
    remains unsolved by Tiers A/B.
-5. **The Go binary is the honest boundary.** `docker` provably contains
-   `crypto/ecdsa`, `crypto/rsa`, `crypto/elliptic/nistec_p256`, TLS_ECDHE_ECDSA — but
-   ships no crypto dylib, no OpenSSL symbols, and stores P-256 in a non-OpenSSL
-   representation, so all three tiers miss it. This is the case for a
-   Where's-Crypto-style structural detector — explicitly future work.
+5. **Go is now covered (default build), and it's a *cleaner* signal than C static.**
+   `docker` is detected HIGH via Go package-path symbols; the symmetric-only Go
+   control is correctly negative because Go DCE never links the asymmetric packages.
+   The remaining Go hole is `-s -w` stripped binaries (no symbol table) — addressable
+   with a gopclntab parser, not a structural detector.
 
 ## Limitations / blind spots (summary)
 
-- Fully symbol-stripped + statically-linked + non-OpenSSL crypto (e.g. Go, Rust):
-  **not detected.** Tier C needs symbols; constants are OpenSSL-shaped. Needs
-  structural/decompiler analysis (the invent-later DFG/LLM tiers).
+- **Stripped Go (`-s -w`)**: the standard symbol table is gone, so the Go path is
+  blind. Go always keeps the `gopclntab` (function names, for stack traces) — a
+  GoReSym-style parser would recover it. Highest-value next addition.
+- Go family attribution reflects *linked* packages, which include transitive crypto
+  deps (e.g. `crypto/ecdsa` pulls `edwards25519`, so an ECDSA-only program also shows
+  Ed25519). That capability really is in the binary; it's breadth, not a false detect.
+- Fully symbol-stripped + statically-linked + non-OpenSSL/non-Go crypto (e.g. Rust
+  with stripped symbols): **not detected** — needs structural analysis (DFG/LLM tier).
 - Tier C resolves direct calls only; crypto reached purely through indirect dispatch
   (function pointers, `dlopen`) can be missed — negatives are conservative, not proofs.
 - Curve constants are curve-specific; custom/non-standard curves embed nothing.
 - ELF `strip` removes the whole symbol table (worst case for Tier C); Mach-O
   `strip -x` keeps external symbols, so Tier C still works there.
-- PE / Windows and ARM64-ELF not in this build matrix (LIEF/capstone support them;
-  the corpus build was scoped to x86-64 ELF + arm64 Mach-O).
+- Windows PE and Rust ecosystems not yet in the dictionary; PE/ARM64-ELF not in the
+  build matrix (LIEF/capstone support them). Next dictionary additions.

@@ -58,6 +58,15 @@ def scan_binary(path: str) -> BinaryFinding:
         f.evidence = a.evidence
         f.note = "asymmetric API imported by the binary's own code"
 
+    # --- HIGH confidence: Go std-lib crypto symbols (linker DCE => callable) --
+    elif a.decision == "asymmetric_go":
+        f.detected = True
+        f.confidence = "high"
+        f.families = a.families
+        f.detection_via = "go-symbol"
+        f.evidence = a.evidence
+        f.note = a.note
+
     # --- static presence: try Tier C reachability to confirm or refute use ----
     elif a.decision == "inconclusive_static" or b.decision == "ecc_present":
         c = tier_c_reachability.analyze(path)
