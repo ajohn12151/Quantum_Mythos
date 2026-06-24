@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -20,6 +21,7 @@ from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.tls import scan_tls
 from .scanners.whitebox.discover import discover
+from .scanners.whitebox.reason import prioritize
 
 
 @asynccontextmanager
@@ -57,14 +59,18 @@ SCAN_CONCURRENCY = 8
 
 
 async def _persist_asset(con, scan_id, org_id, host, facts, source) -> None:
+    p = prioritize(category=facts.category, hndl_risk=facts.hndl_risk,
+                   forward_secrecy=facts.forward_secrecy, source=source, locus=host)
     asset_id = await con.fetchval(
         """INSERT INTO crypto_asset
            (org_id, scan_id, source, host, pubkey_algo, key_bits, curve, sig_algo,
-            tls_version, category, forward_secrecy, est_time_to_break, hndl_risk)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id""",
+            tls_version, category, forward_secrecy, est_time_to_break, hndl_risk,
+            priority_score, data_sensitivity, reachable_from_public, priority_rationale)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id""",
         org_id, scan_id, source, host, facts.pubkey_algo, facts.key_bits, facts.curve,
         facts.sig_algo, facts.tls_version, facts.category, facts.forward_secrecy,
         facts.est_time_to_break, facts.hndl_risk,
+        Decimal(str(p["priority_score"])), p["data_sensitivity"], p["reachable_from_public"], p["rationale"],
     )
     await con.execute(
         "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
@@ -131,13 +137,17 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     pqc = misuse = 0
     for f in findings:
         if f.kind == "pqc_vulnerable":
+            p = prioritize(category=f.category, severity=f.severity,
+                           source="code_dep", locus=f.file_path)
             asset_id = await con.fetchval(
                 """INSERT INTO crypto_asset
                    (org_id, scan_id, source, file_path, line, pubkey_algo, category,
-                    est_time_to_break, hndl_risk)
-                   VALUES ($1,$2,'code_dep',$3,$4,$5,$6,$7,'medium') RETURNING id""",
+                    est_time_to_break, hndl_risk,
+                    priority_score, data_sensitivity, reachable_from_public, priority_rationale)
+                   VALUES ($1,$2,'code_dep',$3,$4,$5,$6,$7,'medium',$8,$9,$10,$11) RETURNING id""",
                 org_id, scan_id, f.file_path, f.line, f.algo, f.category,
                 est_time_to_break(f.algo, None),
+                Decimal(str(p["priority_score"])), p["data_sensitivity"], p["reachable_from_public"], p["rationale"],
             )
             await con.execute(
                 "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "

@@ -27,7 +27,9 @@ with TestClient(app) as c:
     print("=== quantum-vulnerable crypto in code (assets) ===")
     for a in c.get(f"/api/orgs/{org}/assets").json():
         if a["source"] == "code_dep":
-            print(f"  {a['file_path']}:{a['line']:<4} {a['pubkey_algo']:<10} {a['category']}")
+            print(f"  P={str(a['priority_score']):<5} {a['file_path']}:{a['line']:<4} "
+                  f"{a['pubkey_algo']:<10} sens={a['data_sensitivity']}")
+            print(f"         why: {a['priority_rationale']}")
 
     print("\n=== classical crypto bugs (findings, exploitable today) ===")
     for f in c.get(f"/api/orgs/{org}/findings").json():

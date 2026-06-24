@@ -50,11 +50,13 @@ CREATE TABLE IF NOT EXISTS crypto_asset (
     est_time_to_break      TEXT,                -- resource-estimation output (the moat column)
     hndl_risk              TEXT,                -- 'high'|'medium'|'low'
     priority_score         NUMERIC,            -- data_lifetime x quantum_horizon ranking
+    priority_rationale     TEXT,                -- plain-English "why this rank" (REASON layer)
     first_seen    TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_seen     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_asset_org ON crypto_asset(org_id);
 CREATE INDEX IF NOT EXISTS idx_asset_category ON crypto_asset(category);
+ALTER TABLE IF EXISTS crypto_asset ADD COLUMN IF NOT EXISTS priority_rationale TEXT;
 
 -- Remediation lifecycle state machine. Re-scan flips state to 'verified' (red -> green).
 CREATE TABLE IF NOT EXISTS remediation (
