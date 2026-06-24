@@ -303,9 +303,11 @@ async def remediate_pr(req: PrRequest):
     files = await asyncio.to_thread(prepare_pr_files, req.target)
     if not files:
         return {"status": "no_fixes", "detail": "no quantum/crypto findings to fix"}
-    url = await open_pr(req.target, token, files,
-                        title="Quantum Mythos: crypto-agility fixes", body=_PR_BODY)
-    return {"pr_url": url, "files_changed": list(files.keys())}
+    files = dict(list(files.items())[:15])   # keep the PR reviewable
+    result = await open_pr(req.target, token, files,
+                           title="Quantum Mythos: crypto-agility fixes", body=_PR_BODY)
+    return {"pr_url": result["pr_url"], "fork": result["fork"],
+            "files_changed": list(files.keys())}
 
 
 def _working_copy(target: str) -> pathlib.Path:
