@@ -160,6 +160,39 @@ def test_gopclntab_recovers_stripped_go():
     assert f.detected and "RSA" in f.families and f.detection_via == "go-pclntab", f.to_dict()
 
 
+def test_cbom_structure():
+    from app.scanners.binary.cbom import build_cbom
+    bom = build_cbom(
+        {"RSA": [{"location": "/a", "additionalContext": "go-symbol (high)."}],
+         "ECDH": [{"location": "/a", "additionalContext": "pe-import (high)."}]},
+        target="img:1.0", scanned=2, vulnerable=1,
+        serial_number="urn:uuid:x", timestamp="2026-01-01T00:00:00Z")
+    assert bom["bomFormat"] == "CycloneDX" and bom["specVersion"] == "1.6"
+    assert {c["name"] for c in bom["components"]} == {"RSA", "ECDH"}
+    rsa = next(c for c in bom["components"] if c["name"] == "RSA")
+    assert rsa["type"] == "cryptographic-asset"
+    assert rsa["cryptoProperties"]["algorithmProperties"]["nistQuantumSecurityLevel"] == 0
+    assert rsa["cryptoProperties"]["algorithmProperties"]["primitive"] == "pke"
+
+
+def test_artifact_scan_and_cbom_when_built():
+    """Integration: scan_path over the benchmark bin/ finds vulnerable binaries,
+    skips the symmetric-only control, and produces a valid CBOM. Skipped if unbuilt."""
+    from app.scanners.binary.artifact import scan_path
+    from app.scanners.binary.cbom import to_cbom
+    binroot = Path(__file__).resolve().parent / "bin"
+    if not (binroot / "rsa_keygen__elf-x86_64__gcc-O0__dynamic__sym").exists():
+        print("  SKIP test_artifact_scan_and_cbom_when_built (run build.py first)")
+        return
+    scan = scan_path(str(binroot))
+    assert len(scan.findings) > 50 and len(scan.detected) > 0
+    det_names = {f.path.rsplit("/", 1)[-1] for f in scan.detected}
+    # a symmetric-only dynamic control must not be flagged
+    assert "ctrl_aes_sha__elf-x86_64__gcc-O0__dynamic__sym" not in det_names
+    bom = to_cbom(scan, serial_number="urn:uuid:t", timestamp="2026-01-01T00:00:00Z")
+    assert bom["specVersion"] == "1.6" and len(bom["components"]) >= 5
+
+
 def _run():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

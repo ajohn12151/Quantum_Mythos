@@ -26,6 +26,8 @@ from .scanners.blackbox.ct_logs import enumerate_hosts
 from .scanners.blackbox.mail import scan_mail
 from .scanners.blackbox.ssh import scan_ssh
 from .scanners.blackbox.tls import scan_tls
+from .scanners.binary.artifact import scan_path
+from .scanners.binary.cbom import build_cbom
 from .scanners.whitebox.discover import discover, run_semgrep
 from .scanners.whitebox.github_pr import open_pr
 from .scanners.whitebox.reason import prioritize
@@ -214,6 +216,40 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     )
 
 
+async def _run_binary_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
+    """Binary scan: walk a path/artifact, persist each quantum-vulnerable binary as a
+    crypto_asset (one row per detected family), then summarize. No source needed."""
+    con = db.pool()
+    scan = await asyncio.to_thread(scan_path, target)
+    persisted = 0
+    for f in scan.detected:
+        for fam in (f.families or ["asymmetric"]):
+            p = prioritize(category=f.risk_category, hndl_risk=f.hndl,
+                           source="binary", locus=f.path)
+            rationale = f"{f.detection_via} ({f.confidence} confidence). {p['rationale']}"
+            asset_id = await con.fetchval(
+                """INSERT INTO crypto_asset
+                   (org_id, scan_id, source, file_path, pubkey_algo, category,
+                    est_time_to_break, hndl_risk,
+                    priority_score, data_sensitivity, reachable_from_public, priority_rationale)
+                   VALUES ($1,$2,'binary',$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id""",
+                org_id, scan_id, f.path, fam, f.risk_category,
+                f.time_to_break, f.hndl,
+                Decimal(str(p["priority_score"])), p["data_sensitivity"],
+                p["reachable_from_public"], rationale,
+            )
+            await con.execute(
+                "INSERT INTO remediation(asset_id, state) VALUES($1,'discovered') "
+                "ON CONFLICT (asset_id) DO NOTHING",
+                asset_id,
+            )
+            persisted += 1
+    await con.execute(
+        "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
+        scan_id, json.dumps({**scan.summary(), "assets_persisted": persisted}),
+    )
+
+
 # ---------- routes ----------
 @app.get("/health")
 async def health():
@@ -230,6 +266,8 @@ async def create_scan(req: ScanRequest, bg: BackgroundTasks):
     )
     if req.mode == "black_box":
         bg.add_task(_run_blackbox_scan, scan_id, org_id, req.target)
+    elif req.mode == "binary":
+        bg.add_task(_run_binary_scan, scan_id, org_id, req.target)
     else:
         bg.add_task(_run_whitebox_scan, scan_id, org_id, req.target)
     return {"scan_id": str(scan_id), "org_id": str(org_id), "status": "running"}
@@ -241,6 +279,33 @@ async def get_scan(scan_id: UUID):
     if not row:
         raise HTTPException(404, "scan not found")
     return dict(row)
+
+
+@app.get("/api/scans/{scan_id}/cbom")
+async def get_scan_cbom(scan_id: UUID):
+    """Cryptographic Bill of Materials (CycloneDX 1.6) for a binary scan."""
+    con = db.pool()
+    scan = await con.fetchrow("SELECT * FROM scan WHERE id=$1", scan_id)
+    if not scan:
+        raise HTTPException(404, "scan not found")
+    rows = await con.fetch(
+        "SELECT pubkey_algo, file_path, est_time_to_break, priority_rationale "
+        "FROM crypto_asset WHERE scan_id=$1 AND source='binary'", scan_id)
+    by_family: dict[str, list[dict]] = {}
+    for r in rows:
+        by_family.setdefault(r["pubkey_algo"] or "ECC", []).append({
+            "location": r["file_path"],
+            "additionalContext": r["priority_rationale"] or "",
+        })
+    summary = scan["summary_json"] or {}
+    bom = build_cbom(
+        by_family, target=scan["target"],
+        scanned=summary.get("binaries_scanned", len(rows)),
+        vulnerable=summary.get("vulnerable_binaries", len(by_family)),
+        serial_number=f"urn:uuid:{scan_id}",
+        timestamp=(scan["finished_at"] or scan["created_at"]).isoformat(),
+    )
+    return bom
 
 
 @app.get("/api/orgs/{org_id}/assets")
