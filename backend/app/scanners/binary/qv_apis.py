@@ -84,6 +84,61 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
     ],
 }
 
+# --- Windows CNG / CAPI -----------------------------------------------------
+# Windows binaries do asymmetric crypto via system DLLs (bcrypt/ncrypt = CNG,
+# advapi32/crypt32 = legacy CAPI). The IMPORTED function name says "asymmetric
+# happening" but usually NOT the family — the family is the algorithm-identifier
+# string (e.g. L"RSA", L"ECDSA_P256") passed to BCryptOpenAlgorithmProvider, which
+# we recover separately via match_cng_algorithm_strings(). These patterns list ONLY
+# asymmetric-specific functions, so symmetric CNG use (BCryptGenerateSymmetricKey /
+# BCryptEncrypt with AES) does NOT match — the precision boundary.
+_WINDOWS_ASYM_FUNC_PATTERNS = [
+    r"^BCryptGenerateKeyPair$", r"^BCryptFinalizeKeyPair$",
+    r"^BCryptSecretAgreement$", r"^BCryptSignHash$", r"^BCryptVerifySignature$",
+    r"^BCryptImportKeyPair$", r"^BCryptExportKey$",
+    r"^NCryptCreatePersistedKey$", r"^NCryptImportKey$", r"^NCryptSignHash$",
+    r"^NCryptVerifySignature$", r"^NCryptSecretAgreement$",
+    # legacy CAPI, asymmetric-specific (public-key / certificate operations)
+    r"^CryptImportPublicKeyInfo", r"^CryptExportPublicKeyInfo",
+    r"^CertCreateSelfSignCertificate$", r"^CryptSignCertificate",
+    r"^CryptSignAndEncodeCertificate$", r"^CryptSignHash[AW]$",
+]
+_WINDOWS_ASYM_COMPILED = [re.compile(p) for p in _WINDOWS_ASYM_FUNC_PATTERNS]
+
+# CNG algorithm-identifier strings -> family. Used to attribute the family of a
+# detected CNG asymmetric operation by scanning the binary for the (UTF-16LE,
+# null-terminated) provider string.
+_CNG_ALGORITHM_STRINGS = {
+    "RSA": "RSA", "RSA_SIGN": "RSA",
+    "DH": "DH", "DSA": "DSA",
+    "ECDSA_P256": "ECDSA", "ECDSA_P384": "ECDSA", "ECDSA_P521": "ECDSA", "ECDSA": "ECDSA",
+    "ECDH_P256": "ECDH", "ECDH_P384": "ECDH", "ECDH_P521": "ECDH", "ECDH": "ECDH",
+}
+
+
+def match_windows_asym_imports(import_names: set[str]) -> list[str]:
+    """Return imported CNG/CAPI asymmetric-operation functions (empty if none)."""
+    return sorted(n for n in import_names
+                  if any(p.match(n) for p in _WINDOWS_ASYM_COMPILED))
+
+
+def match_cng_algorithm_strings(data: bytes) -> dict[str, list[str]]:
+    """Find CNG algorithm-id provider strings in the image -> {family: [ids]}.
+
+    Matched as null-terminated UTF-16LE (how the provider strings are stored),
+    which keeps short ids like "RSA"/"DH" from firing on incidental wide text.
+    ECDSA_*/ECDH_* also imply the ECC family.
+    """
+    hits: dict[str, set[str]] = {}
+    for algid, fam in _CNG_ALGORITHM_STRINGS.items():
+        wide = algid.encode("utf-16-le") + b"\x00\x00"
+        if wide in data:
+            hits.setdefault(fam, set()).add(algid)
+            if fam in ("ECDSA", "ECDH"):
+                hits.setdefault("ECC", set()).add(algid)
+    return {fam: sorted(ids) for fam, ids in sorted(hits.items())}
+
+
 # Distinctive markers that a binary was produced by the Go toolchain. Used by
 # Tier A to decide that a retained crypto/* symbol is meaningful: the Go linker
 # does function-level dead-code elimination, so a symbol that survived into the
@@ -106,6 +161,7 @@ _COMPILED: dict[str, list[re.Pattern]] = {
 CRYPTO_LIBRARY_HINTS = (
     "libcrypto", "libssl", "libwolfssl", "libmbedcrypto", "libmbedtls",
     "libgnutls", "libgcrypt", "libsodium", "libnettle",
+    "bcrypt", "ncrypt",   # Windows CNG
 )
 
 # A few generic EVP names that prove OpenSSL EVP usage but do NOT by themselves

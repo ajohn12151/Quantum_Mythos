@@ -54,9 +54,9 @@ def scan_binary(path: str) -> BinaryFinding:
         f.detected = True
         f.confidence = "high"
         f.families = a.families
-        f.detection_via = "symbol-import"
+        f.detection_via = a.via or "symbol-import"
         f.evidence = a.evidence
-        f.note = "asymmetric API imported by the binary's own code"
+        f.note = a.note or "asymmetric API imported by the binary's own code"
 
     # --- HIGH confidence: Go std-lib crypto symbols (linker DCE => callable) --
     elif a.decision == "asymmetric_go":

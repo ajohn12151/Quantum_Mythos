@@ -12,7 +12,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.scanners.binary.qv_apis import looks_like_go, match_families  # noqa: E402
+from app.scanners.binary.qv_apis import (  # noqa: E402
+    looks_like_go,
+    match_cng_algorithm_strings,
+    match_families,
+    match_windows_asym_imports,
+)
 from app.scanners.binary.tier_a_symbols import normalize  # noqa: E402
 
 
@@ -73,6 +78,27 @@ def test_go_symmetric_not_flagged():
 def test_looks_like_go():
     assert looks_like_go({"runtime.main", "crypto/rsa.GenerateKey"})
     assert not looks_like_go({"main", "EVP_PKEY_keygen", "RSA_new"})
+
+
+def test_windows_cng_asym_imports():
+    assert match_windows_asym_imports({"BCryptGenerateKeyPair", "BCryptOpenAlgorithmProvider"}) \
+        == ["BCryptGenerateKeyPair"]
+    assert match_windows_asym_imports({"NCryptSecretAgreement"}) == ["NCryptSecretAgreement"]
+
+
+def test_windows_cng_symmetric_not_flagged():
+    # symmetric CNG operations are not asymmetric-specific imports
+    assert match_windows_asym_imports({"BCryptGenerateSymmetricKey", "BCryptEncrypt",
+                                       "BCryptHashData"}) == []
+
+
+def test_cng_algorithm_strings():
+    def wide(s):  # null-terminated UTF-16LE, as CNG provider strings are stored
+        return s.encode("utf-16-le") + b"\x00\x00"
+    assert match_cng_algorithm_strings(wide("RSA")) == {"RSA": ["RSA"]}
+    got = match_cng_algorithm_strings(wide("ECDSA_P256"))
+    assert set(got) == {"ECDSA", "ECC"}
+    assert match_cng_algorithm_strings(wide("AES")) == {}   # symmetric id, no match
 
 
 def test_normalize():

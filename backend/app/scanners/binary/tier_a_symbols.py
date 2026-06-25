@@ -30,8 +30,16 @@ from dataclasses import dataclass, field
 
 import lief
 
+from pathlib import Path
+
 from .go_pclntab import recover_go_funcnames
-from .qv_apis import CRYPTO_LIBRARY_HINTS, looks_like_go, match_families
+from .qv_apis import (
+    CRYPTO_LIBRARY_HINTS,
+    looks_like_go,
+    match_cng_algorithm_strings,
+    match_families,
+    match_windows_asym_imports,
+)
 
 # LIEF 0.12 prints "Command 'DYLD_CHAINED_FIXUPS' not parsed!" to stderr for modern
 # Mach-O load commands it doesn't model. Those commands are irrelevant to symbol
@@ -117,17 +125,40 @@ def analyze(path: str) -> TierAResult:
 
     imported = _imported_names(b)
     import_families = match_families(imported)
+    win_funcs = match_windows_asym_imports(imported)
 
     res = TierAResult(parsed=True, fmt=fmt, crypto_libs=crypto_libs,
                       import_families=import_families)
 
     # --- high-confidence path: the program imports a QV API ------------------
-    if import_families:
+    # Covers both name-encodes-family imports (OpenSSL: RSA_*, EC_KEY_*) and
+    # Windows CNG/CAPI asymmetric-operation imports (family-ambiguous; attributed
+    # from the embedded algorithm-id strings).
+    if import_families or win_funcs:
         res.decision = "asymmetric"
         res.confidence = "high"
-        res.families = sorted(import_families)
-        ev = [f"import:{n}" for fam in res.families for n in import_families[fam][:2]]
-        res.evidence = ev[:6] + [f"lib:{l}" for l in crypto_libs]
+        fams: dict[str, list[str]] = {f: list(v) for f, v in import_families.items()}
+        ev = [f"import:{n}" for fam in import_families for n in import_families[fam][:2]]
+
+        if win_funcs:
+            res.via = "pe-import"
+            ev += [f"pe-import:{n}" for n in win_funcs[:3]]
+            try:
+                cng_fams = match_cng_algorithm_strings(Path(path).read_bytes())
+            except OSError:
+                cng_fams = {}
+            for f, ids in cng_fams.items():
+                fams.setdefault(f, []).extend(ids)
+            if not fams:   # asymmetric confirmed, but family-id strings absent
+                res.note = ("Windows CNG/CAPI asymmetric operation imported; family "
+                            "not determinable (no algorithm-id strings found)")
+        else:
+            res.via = "symbol-import"
+
+        res.families = sorted(fams)
+        res.evidence = (ev + [f"lib:{l}" for l in crypto_libs])[:8]
+        if not res.note:
+            res.note = "asymmetric crypto API imported by the binary"
         return res
 
     # No QV imports. Inspect defined symbols for the static-linkage cases.

@@ -1298,6 +1298,138 @@
     "stripped": false
   },
   {
+    "binary": "pe_ecdh__pe-x86_64__mingw__dynamic__strip.exe",
+    "source": "pe_ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "pe_ecdh__pe-x86_64__mingw__dynamic__sym.exe",
+    "source": "pe_ecdh.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDH"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "pe_ecdsa__pe-x86_64__mingw__dynamic__strip.exe",
+    "source": "pe_ecdsa.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "pe_ecdsa__pe-x86_64__mingw__dynamic__sym.exe",
+    "source": "pe_ecdsa.c",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "pe_noncrypto__pe-x86_64__mingw__dynamic__strip.exe",
+    "source": "pe_noncrypto.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "pe_noncrypto__pe-x86_64__mingw__dynamic__sym.exe",
+    "source": "pe_noncrypto.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "pe_rsa__pe-x86_64__mingw__dynamic__strip.exe",
+    "source": "pe_rsa.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "pe_rsa__pe-x86_64__mingw__dynamic__sym.exe",
+    "source": "pe_rsa.c",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
+    "binary": "pe_symmetric__pe-x86_64__mingw__dynamic__strip.exe",
+    "source": "pe_symmetric.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": true
+  },
+  {
+    "binary": "pe_symmetric__pe-x86_64__mingw__dynamic__sym.exe",
+    "source": "pe_symmetric.c",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "pe",
+    "arch": "x86_64",
+    "compiler": "mingw",
+    "opt": "O0",
+    "linkage": "dynamic",
+    "stripped": false
+  },
+  {
     "binary": "rsa_keygen__elf-x86_64__clang-O0__dynamic__sym",
     "source": "rsa_keygen.c",
     "present_asymmetric": true,

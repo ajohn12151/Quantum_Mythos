@@ -32,6 +32,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CORPUS = HERE / "corpus"
 CORPUS_GO = HERE / "corpus_go"
+CORPUS_PE = HERE / "corpus_pe"
 BIN = HERE / "bin"
 GROUND_TRUTH = HERE / "ground_truth.json"
 
@@ -199,6 +200,64 @@ def build_go(records: list[dict]) -> None:
     print(f"Go build failures: {fails}")
 
 
+# --- Windows PE build (mingw-w64 cross-compile in Docker) --------------------
+# Windows-native asymmetric crypto goes through CNG (bcrypt.dll). The imported
+# function (BCryptGenerateKeyPair) says "asymmetric"; the family is the wide
+# algorithm-id string (L"RSA", L"ECDSA_P256"). PE import tables survive `strip`,
+# so both variants are detectable.
+PE_SOURCE_META = {
+    "pe_rsa":       {"present": True,  "families": ["RSA"]},
+    "pe_ecdsa":     {"present": True,  "families": ["ECDSA"]},
+    "pe_ecdh":      {"present": True,  "families": ["ECDH"]},
+    "pe_symmetric": {"present": False, "families": []},   # CNG AES only
+    "pe_noncrypto": {"present": False, "families": []},
+}
+
+
+def build_pe(records: list[dict]) -> None:
+    if not CORPUS_PE.exists():
+        return
+    lines = ["set -u", "cd /work", "mkdir -p bin", "CC=x86_64-w64-mingw32-gcc",
+             "STRIP=x86_64-w64-mingw32-strip"]
+    planned = []
+    for src in PE_SOURCE_META:
+        if not (CORPUS_PE / f"{src}.c").exists():
+            continue
+        for stripped in (False, True):
+            sym = "strip" if stripped else "sym"
+            # mingw appends .exe unless the output name already ends in it, so name
+            # the artifact with .exe to keep the on-disk file and the record in sync.
+            name = f"{src}__pe-x86_64__mingw__dynamic__{sym}.exe"
+            out = f"bin/{name}"
+            lines.append(f'if $CC corpus_pe/{src}.c -o {out} -lbcrypt 2>/dev/null; then')
+            if stripped:
+                lines.append(f"  $STRIP {out}")
+            lines.append(f'  echo "OK {name}"')
+            lines.append(f'else echo "FAIL {name}"; fi')
+            planned.append((src, name, stripped))
+    script = "\n".join(lines)
+
+    print("=== building Windows PE matrix (mingw-w64 in Docker) ===")
+    proc = subprocess.run(
+        ["docker", "run", "--rm", "-i", "--platform", "linux/amd64",
+         "-v", f"{CORPUS_PE}:/work/corpus_pe:ro", "-v", f"{BIN}:/work/bin",
+         DOCKER_IMAGE, "bash", "-s"],
+        input=script, text=True, capture_output=True,
+    )
+    print(proc.stdout)
+    if proc.returncode != 0:
+        print(proc.stderr, file=sys.stderr)
+    built = {ln.split(" ", 1)[1] for ln in proc.stdout.splitlines() if ln.startswith("OK ")}
+    for src, name, stripped in planned:
+        if name in built and (BIN / name).exists():
+            meta = PE_SOURCE_META[src]
+            rec = _record(name, src, "pe", "x86_64", "mingw", "0", "dynamic", stripped)
+            rec["present_asymmetric"] = meta["present"]
+            rec["families"] = meta["families"]
+            rec["source"] = f"{src}.c"
+            records.append(rec)
+
+
 def _record(name, src, fmt, arch, compiler, opt, linkage, stripped) -> dict:
     meta = SOURCE_META.get(src, {"present": False, "families": []})
     return {
@@ -220,6 +279,7 @@ def main() -> int:
     ap.add_argument("--elf-only", action="store_true")
     ap.add_argument("--macho-only", action="store_true")
     ap.add_argument("--go-only", action="store_true")
+    ap.add_argument("--pe-only", action="store_true")
     ap.add_argument("--clean", action="store_true", help="wipe bin/ first")
     args = ap.parse_args()
 
@@ -228,13 +288,15 @@ def main() -> int:
     BIN.mkdir(exist_ok=True)
 
     records: list[dict] = []
-    only = args.elf_only or args.macho_only or args.go_only
+    only = args.elf_only or args.macho_only or args.go_only or args.pe_only
     if args.elf_only or not only:
         build_elf(records)
     if args.macho_only or not only:
         build_macho(records)
     if args.go_only or not only:
         build_go(records)
+    if args.pe_only or not only:
+        build_pe(records)
 
     records.sort(key=lambda r: r["binary"])
     GROUND_TRUTH.write_text(json.dumps(records, indent=2) + "\n")
