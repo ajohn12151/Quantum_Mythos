@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS app_user (
 CREATE TABLE IF NOT EXISTS scan (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id       UUID NOT NULL REFERENCES org(id) ON DELETE CASCADE,
-    mode         TEXT NOT NULL CHECK (mode IN ('black_box','white_box')),
-    target       TEXT NOT NULL,                 -- domain (black-box) or repo URL (white-box)
+    mode         TEXT NOT NULL CHECK (mode IN ('black_box','white_box','binary')),
+    target       TEXT NOT NULL,                 -- domain (black-box), repo URL (white-box), or path/artifact (binary)
     status       TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running','done','error')),
     summary_json JSONB,
     started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),

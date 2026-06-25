@@ -298,6 +298,8 @@ async def get_scan_cbom(scan_id: UUID):
             "additionalContext": r["priority_rationale"] or "",
         })
     summary = scan["summary_json"] or {}
+    if isinstance(summary, str):          # asyncpg returns JSONB as text
+        summary = json.loads(summary)
     bom = build_cbom(
         by_family, target=scan["target"],
         scanned=summary.get("binaries_scanned", len(rows)),
