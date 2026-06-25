@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.scanners.binary.qv_apis import (  # noqa: E402
     looks_like_go,
+    looks_like_rust,
     match_cng_algorithm_strings,
     match_families,
     match_windows_asym_imports,
@@ -99,6 +100,24 @@ def test_cng_algorithm_strings():
     got = match_cng_algorithm_strings(wide("ECDSA_P256"))
     assert set(got) == {"ECDSA", "ECC"}
     assert match_cng_algorithm_strings(wide("AES")) == {}   # symmetric id, no match
+
+
+def test_rust_crate_symbols():
+    # RustCrypto mangled symbols -> family
+    assert _fams("_ZN3rsa3key13RsaPrivateKey3new17hE") == {"RSA"}
+    assert _fams("_ZN13elliptic_curve6scalarE", "4p256") == {"ECC"}
+    assert _fams("ed25519_dalek", "curve25519_dalek") == {"Ed25519"}
+
+
+def test_rust_dsa_boundary_not_ecdsa():
+    # the Rust DSA pattern [0-9]dsa[0-9] must not fire on the ecdsa crate token
+    assert _fams("5ecdsa9SigningKey") == {"ECDSA"}
+    assert _fams("3dsa1") == {"DSA"}
+
+
+def test_looks_like_rust():
+    assert looks_like_rust({"_rust_begin_unwind", "_ZN3rsa3keyE"})
+    assert not looks_like_rust({"main", "EVP_PKEY_keygen", "_ZN4core9panickingE"})
 
 
 def test_normalize():

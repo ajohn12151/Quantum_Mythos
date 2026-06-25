@@ -33,6 +33,7 @@ HERE = Path(__file__).resolve().parent
 CORPUS = HERE / "corpus"
 CORPUS_GO = HERE / "corpus_go"
 CORPUS_PE = HERE / "corpus_pe"
+CORPUS_RUST = HERE / "corpus_rust"
 BIN = HERE / "bin"
 GROUND_TRUTH = HERE / "ground_truth.json"
 
@@ -258,6 +259,53 @@ def build_pe(records: list[dict]) -> None:
             records.append(rec)
 
 
+# --- Rust build (native; RustCrypto, static) --------------------------------
+# Pure-Rust crypto (RustCrypto crates). Like Go, LLVM DCE means a retained crate
+# symbol implies use. Unlike Go there is no pcln fallback, so a stripped Rust binary
+# (no symbols, and measured: no curve constants either) is a genuine miss.
+RUST_SOURCE_META = {
+    "rust_rsa":       {"present": True,  "families": ["RSA"]},
+    "rust_ecdsa":     {"present": True,  "families": ["ECDSA"]},
+    "rust_ed25519":   {"present": True,  "families": ["Ed25519"]},
+    "rust_symmetric": {"present": False, "families": []},   # AES-GCM + SHA only
+    "rust_noncrypto": {"present": False, "families": []},
+}
+
+
+def build_rust(records: list[dict]) -> None:
+    if shutil.which("cargo") is None or not CORPUS_RUST.exists():
+        print("!! cargo or corpus_rust missing; skipping Rust", file=sys.stderr)
+        return
+    print("=== building Rust matrix natively (arm64, release) ===")
+    r = subprocess.run(["cargo", "build", "--release"], cwd=CORPUS_RUST,
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stderr.strip().splitlines()[-1] if r.stderr.strip() else "cargo build failed",
+              file=sys.stderr)
+        return
+    rel = CORPUS_RUST / "target" / "release"
+    fails = 0
+    for src, meta in RUST_SOURCE_META.items():
+        built = rel / src
+        if not built.exists():
+            print(f"FAIL {src}: not produced")
+            fails += 1
+            continue
+        for stripped in (False, True):
+            sym = "strip" if stripped else "sym"
+            name = f"{src}__macho-arm64__rust__static__{sym}"
+            shutil.copy2(built, BIN / name)
+            if stripped:
+                subprocess.run(["strip", "-x", str(BIN / name)], capture_output=True)
+            print(f"OK {name}")
+            rec = _record(name, src, "macho", "arm64", "rust", "0", "static", stripped)
+            rec["present_asymmetric"] = meta["present"]
+            rec["families"] = meta["families"]
+            rec["source"] = f"{src}.rs"
+            records.append(rec)
+    print(f"Rust build failures: {fails}")
+
+
 def _record(name, src, fmt, arch, compiler, opt, linkage, stripped) -> dict:
     meta = SOURCE_META.get(src, {"present": False, "families": []})
     return {
@@ -280,6 +328,7 @@ def main() -> int:
     ap.add_argument("--macho-only", action="store_true")
     ap.add_argument("--go-only", action="store_true")
     ap.add_argument("--pe-only", action="store_true")
+    ap.add_argument("--rust-only", action="store_true")
     ap.add_argument("--clean", action="store_true", help="wipe bin/ first")
     args = ap.parse_args()
 
@@ -288,7 +337,8 @@ def main() -> int:
     BIN.mkdir(exist_ok=True)
 
     records: list[dict] = []
-    only = args.elf_only or args.macho_only or args.go_only or args.pe_only
+    only = (args.elf_only or args.macho_only or args.go_only or args.pe_only
+            or args.rust_only)
     if args.elf_only or not only:
         build_elf(records)
     if args.macho_only or not only:
@@ -297,6 +347,8 @@ def main() -> int:
         build_go(records)
     if args.pe_only or not only:
         build_pe(records)
+    if args.rust_only or not only:
+        build_rust(records)
 
     records.sort(key=lambda r: r["binary"])
     GROUND_TRUTH.write_text(json.dumps(records, indent=2) + "\n")

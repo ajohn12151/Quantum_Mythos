@@ -1,0 +1,15 @@
+[package]
+name = "qm_rust_corpus"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+rsa = "0.9"
+p256 = { version = "0.13", features = ["ecdsa"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+aes-gcm = "0.10"
+sha2 = "0.10"
+rand = "0.8"
+
+[profile.release]
+strip = false

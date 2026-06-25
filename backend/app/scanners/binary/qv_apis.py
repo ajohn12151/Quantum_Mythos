@@ -36,12 +36,16 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         r"(?:^|_)wc_Rsa",
         # Go std lib (symbol = package path; matched on defined symbols, see note)
         r"\bcrypto/rsa\.",
+        # Rust: RustCrypto `rsa` crate (mangled symbols). Type names are distinctive;
+        # [0-9]rsa[0-9] catches the length-prefixed crate path (e.g. 3rsa3key).
+        r"RsaPrivateKey", r"RsaPublicKey", r"[0-9]rsa[0-9]",
     ],
     "ECDSA": [
         r"(?:^|_)ECDSA_",               # ECDSA_do_sign, ECDSA_sign, ECDSA_SIG_*
         r"(?:^|_)mbedtls_ecdsa_",
         r"(?:^|_)wc_ecc_(?:sign|verify)",
         r"\bcrypto/ecdsa\.",            # Go
+        r"[0-9]ecdsa[0-9]",             # Rust `ecdsa` crate
     ],
     "ECDH": [
         r"(?:^|_)ECDH_",                # ECDH_compute_key
@@ -49,6 +53,7 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         r"(?:^|_)mbedtls_ecdh_",
         r"\bcrypto/ecdh\.",             # Go (incl. X25519)
         r"golang\.org/x/crypto/curve25519",
+        r"x25519_dalek", r"[0-9]x25519[0-9]",   # Rust
     ],
     "ECC": [
         # Generic elliptic-curve machinery: present for EC keygen and any EC scheme.
@@ -62,6 +67,8 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         # Go elliptic-curve machinery
         r"\bcrypto/elliptic\.",
         r"\bcrypto/internal/(?:fips140/)?nistec\b",
+        # Rust: elliptic-curve crate + the NIST/k256 curve crates
+        r"elliptic_curve", r"[0-9](?:p256|p384|p521|k256)[0-9]",
     ],
     "DH": [
         r"(?:^|_)DH_",                  # DH_new, DH_generate_key, DH_compute_key
@@ -73,6 +80,7 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         r"(?:^|_)DSA_",                 # DSA_new, DSA_do_sign, DSA_generate_key
         r"EVP_PKEY_CTX_set_dsa_",
         r"\bcrypto/dsa\.",              # Go
+        r"[0-9]dsa[0-9]",              # Rust `dsa` crate (boundary excludes ecdsa)
     ],
     "Ed25519": [
         # EdDSA over edwards25519 — Shor-broken like the rest.
@@ -81,6 +89,7 @@ _FAMILY_PATTERNS: dict[str, list[str]] = {
         r"golang\.org/x/crypto/ed25519",
         r"EVP_PKEY_ED25519",                                # OpenSSL EVP id
         r"(?:^|_)ED25519_(?:sign|verify|keypair)",          # BoringSSL/OpenSSL
+        r"ed25519_dalek", r"curve25519_dalek", r"[0-9]ed25519[0-9]",   # Rust
     ],
 }
 
@@ -149,6 +158,17 @@ _GO_MARKERS = ("runtime.", "go:", "internal/poll.", "runtime/internal")
 
 def looks_like_go(symbol_names: set[str]) -> bool:
     return any(any(n.startswith(m) for m in _GO_MARKERS) for n in symbol_names)
+
+
+# Rust runtime symbols (uniquely Rust; absent from C/C++/Go). Like Go, the Rust/
+# LLVM linker dead-code-eliminates unused monomorphizations, so a retained crypto
+# crate symbol implies use. (Stripped Rust loses these — and unlike Go there is no
+# pcln-table fallback, so stripped Rust is a genuine miss.)
+_RUST_MARKERS = ("rust_begin_unwind", "rust_eh_personality", "rust_alloc", "rust_panic")
+
+
+def looks_like_rust(symbol_names: set[str]) -> bool:
+    return any(any(m in n for m in _RUST_MARKERS) for n in symbol_names)
 
 # Compile once.
 _COMPILED: dict[str, list[re.Pattern]] = {

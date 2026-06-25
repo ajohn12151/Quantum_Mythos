@@ -1582,5 +1582,137 @@
     "opt": "O3",
     "linkage": "static",
     "stripped": false
+  },
+  {
+    "binary": "rust_ecdsa__macho-arm64__rust__static__strip",
+    "source": "rust_ecdsa.rs",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rust_ecdsa__macho-arm64__rust__static__sym",
+    "source": "rust_ecdsa.rs",
+    "present_asymmetric": true,
+    "families": [
+      "ECDSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rust_ed25519__macho-arm64__rust__static__strip",
+    "source": "rust_ed25519.rs",
+    "present_asymmetric": true,
+    "families": [
+      "Ed25519"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rust_ed25519__macho-arm64__rust__static__sym",
+    "source": "rust_ed25519.rs",
+    "present_asymmetric": true,
+    "families": [
+      "Ed25519"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rust_noncrypto__macho-arm64__rust__static__strip",
+    "source": "rust_noncrypto.rs",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rust_noncrypto__macho-arm64__rust__static__sym",
+    "source": "rust_noncrypto.rs",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rust_rsa__macho-arm64__rust__static__strip",
+    "source": "rust_rsa.rs",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rust_rsa__macho-arm64__rust__static__sym",
+    "source": "rust_rsa.rs",
+    "present_asymmetric": true,
+    "families": [
+      "RSA"
+    ],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
+  },
+  {
+    "binary": "rust_symmetric__macho-arm64__rust__static__strip",
+    "source": "rust_symmetric.rs",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": true
+  },
+  {
+    "binary": "rust_symmetric__macho-arm64__rust__static__sym",
+    "source": "rust_symmetric.rs",
+    "present_asymmetric": false,
+    "families": [],
+    "format": "macho",
+    "arch": "arm64",
+    "compiler": "rust",
+    "opt": "O0",
+    "linkage": "static",
+    "stripped": false
   }
 ]

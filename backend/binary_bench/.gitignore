@@ -4,3 +4,5 @@ bin/
 realworld/rw_*
 # Computed results
 results.json
+# Rust build target
+corpus_rust/target/

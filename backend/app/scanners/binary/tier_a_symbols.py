@@ -36,6 +36,7 @@ from .go_pclntab import recover_go_funcnames
 from .qv_apis import (
     CRYPTO_LIBRARY_HINTS,
     looks_like_go,
+    looks_like_rust,
     match_cng_algorithm_strings,
     match_families,
     match_windows_asym_imports,
@@ -178,6 +179,18 @@ def analyze(path: str) -> TierAResult:
         res.evidence = [f"go-sym:{defined_families[fam][0]}" for fam in res.families][:6]
         res.note = ("Go std-lib crypto symbols present; Go linker DCE means a "
                     "retained symbol is linked and callable (presence ~ use).")
+        return res
+
+    # --- Rust: same DCE-presence-implies-use reasoning as Go -----------------
+    if defined_families and looks_like_rust(defined):
+        res.decision = "asymmetric_go"   # shares the high-confidence DCE handling
+        res.confidence = "high"
+        res.via = "rust-symbol"
+        res.families = sorted(defined_families)
+        res.evidence = [f"rust-sym:{defined_families[fam][0]}" for fam in res.families][:6]
+        res.note = ("RustCrypto/Rust crypto symbols present; LLVM dead-code "
+                    "elimination means a retained symbol is callable (presence ~ "
+                    "use). Stripped Rust loses symbols (no pcln fallback) -> missed.")
         return res
 
     # --- dynamic crypto consumer, but NO asymmetric import -------------------

@@ -112,7 +112,7 @@ def main() -> int:
     print(f"{'toolchain':12s} {'n':>3} {'pos':>3}  {'operP':>7} {'operR':>7}")
     tool = defaultdict(list)
     for r in rows:
-        bucket = {"go": "go", "mingw": "windows-pe"}.get(r["compiler"], "c/c++")
+        bucket = {"go": "go", "mingw": "windows-pe", "rust": "rust"}.get(r["compiler"], "c/c++")
         tool[bucket].append(r)
     for key in sorted(tool):
         sub = tool[key]
