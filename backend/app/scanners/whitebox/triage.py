@@ -8,13 +8,27 @@ and a rationale you can show.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from . import llm
 
-# Path tokens that mark non-production code (residual after dir excludes).
-_FP_PATH = ("test", "testing", "testdata", "testcert", "mock", "fixture",
-            "example", "sample", "benchmark", "/e2e/", "spec")
+# Path segments / filename patterns that mark non-production code (residual after
+# the discover-layer dir excludes). Matched on path SEGMENTS, not raw substrings:
+# substring matching wrongly suppressed real files like `pkg/attestation/keys.go`
+# ("test" ⊂ "attestation") or `internal/latest/` — a missed-vuln, the worst error.
+_FP_PATH_SEGMENTS = {"test", "tests", "testing", "testdata", "testcerts", "mock",
+                     "mocks", "fixture", "fixtures", "example", "examples", "sample",
+                     "samples", "benchmark", "benchmarks", "e2e", "spec", "specs",
+                     "__tests__", "__mocks__"}
+_FP_FILE_RE = re.compile(r"(^test_|_test\.|\.test\.|\.spec\.|_spec\.|\.fixture\.)")
+
+
+def _in_test_path(file_path: str) -> bool:
+    parts = re.split(r"[\\/]", (file_path or "").lower())
+    if any(p in _FP_PATH_SEGMENTS for p in parts):
+        return True
+    return bool(parts and _FP_FILE_RE.search(parts[-1]))
 # Context hints that a hash is NON-security (so md5/sha1 is fine, not a vuln).
 _NONSEC_HASH = ("cache", "etag", "checksum", "fingerprint", "unordered",
                 "load balancer", "non-security", "not for security", "dedup")
@@ -31,8 +45,7 @@ class TriageVerdict:
 
 
 def _heuristic(f) -> TriageVerdict | None:
-    path = (f.file_path or "").lower()
-    if any(t in path for t in _FP_PATH):
+    if _in_test_path(f.file_path or ""):
         return TriageVerdict(False, "dead", "none",
                              f"In a test/example path ({f.file_path}) — not production crypto.",
                              0.85, "heuristic")
