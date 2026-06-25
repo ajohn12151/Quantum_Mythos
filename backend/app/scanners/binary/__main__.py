@@ -15,23 +15,30 @@ from uuid import uuid4
 
 from .artifact import scan_path
 from .cbom import to_cbom
+from .image import scan_image
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.scanners.binary")
-    ap.add_argument("path", help="binary file, or directory/tree of binaries")
+    ap.add_argument("path", nargs="?", help="binary file, or directory/tree of binaries")
+    ap.add_argument("--image", metavar="REF", help="scan a container image (e.g. nginx:alpine)")
     ap.add_argument("--cbom", metavar="FILE", help="write a CycloneDX CBOM here")
     ap.add_argument("--json", action="store_true", help="emit findings as JSON")
     args = ap.parse_args(argv)
 
-    scan = scan_path(args.path)
+    if args.image:
+        scan = scan_image(args.image)
+    elif args.path:
+        scan = scan_path(args.path)
+    else:
+        ap.error("provide a PATH or --image REF")
     summary = scan.summary()
 
     if args.json:
         print(json.dumps({"summary": summary,
                           "findings": [f.to_dict() for f in scan.detected]}, indent=2))
     else:
-        print(f"\nScanned {summary['binaries_scanned']} binaries under {args.path!r}")
+        print(f"\nScanned {summary['binaries_scanned']} binaries in {scan.target!r}")
         print(f"  quantum-vulnerable: {summary['vulnerable_binaries']} "
               f"({summary['high_confidence']} high / {summary['low_confidence']} low confidence)")
         print(f"  families: {summary['families'] or '—'}\n")

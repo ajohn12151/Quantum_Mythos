@@ -28,6 +28,7 @@ from .scanners.blackbox.ssh import scan_ssh
 from .scanners.blackbox.tls import scan_tls
 from .scanners.binary.artifact import scan_path
 from .scanners.binary.cbom import build_cbom
+from .scanners.binary.image import scan_image
 from .scanners.whitebox.discover import discover, run_semgrep
 from .scanners.whitebox.github_pr import open_pr
 from .scanners.whitebox.reason import prioritize
@@ -220,7 +221,12 @@ async def _run_binary_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
     """Binary scan: walk a path/artifact, persist each quantum-vulnerable binary as a
     crypto_asset (one row per detected family), then summarize. No source needed."""
     con = db.pool()
-    scan = await asyncio.to_thread(scan_path, target)
+    # A target that exists on disk is a path/artifact; otherwise treat it as a
+    # container image reference (e.g. "nginx:alpine", "registry/app:1.2").
+    if pathlib.Path(target).exists():
+        scan = await asyncio.to_thread(scan_path, target)
+    else:
+        scan = await asyncio.to_thread(scan_image, target)
     persisted = 0
     for f in scan.detected:
         for fam in (f.families or ["asymmetric"]):

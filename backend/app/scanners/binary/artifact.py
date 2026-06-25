@@ -52,6 +52,15 @@ class ArtifactScan:
         }
 
 
+def is_binary_magic(magic: bytes) -> bool:
+    """True if the leading bytes look like ELF / PE / Mach-O (incl. fat Mach-O)."""
+    return (magic[:4] == b"\x7fELF"
+            or magic[:2] == b"MZ"
+            or magic[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
+                             b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
+                             b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"))
+
+
 def _looks_like_binary(path: Path) -> bool:
     if path.suffix.lower() in _SKIP_SUFFIXES:
         return False
@@ -62,12 +71,7 @@ def _looks_like_binary(path: Path) -> bool:
             magic = fh.read(4)
     except OSError:
         return False
-    # ELF \x7fELF | PE 'MZ' | Mach-O (32/64, both endians) | fat Mach-O
-    return (magic[:4] == b"\x7fELF"
-            or magic[:2] == b"MZ"
-            or magic[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
-                             b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe",
-                             b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"))
+    return is_binary_magic(magic)
 
 
 def iter_binaries(root: str):

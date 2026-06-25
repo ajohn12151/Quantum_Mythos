@@ -160,6 +160,16 @@ def test_gopclntab_recovers_stripped_go():
     assert f.detected and "RSA" in f.families and f.detection_via == "go-pclntab", f.to_dict()
 
 
+def test_is_binary_magic():
+    from app.scanners.binary.artifact import is_binary_magic
+    assert is_binary_magic(b"\x7fELF")              # ELF
+    assert is_binary_magic(b"MZ\x90\x00")           # PE
+    assert is_binary_magic(b"\xcf\xfa\xed\xfe")     # Mach-O 64
+    assert is_binary_magic(b"\xca\xfe\xba\xbe")     # fat Mach-O
+    assert not is_binary_magic(b"#!/b")             # script
+    assert not is_binary_magic(b"{\n  ")            # json/text
+
+
 def test_cbom_structure():
     from app.scanners.binary.cbom import build_cbom
     bom = build_cbom(
