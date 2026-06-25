@@ -27,8 +27,11 @@ function SignupPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = z.object({ email: z.string().email(), password: z.string().min(6) }).safeParse({ email, password });
-    if (!parsed.success) return toast.error("Enter a valid email and a password of at least 6 characters.");
+    const parsed = z
+      .object({ email: z.string().email(), password: z.string().min(6) })
+      .safeParse({ email, password });
+    if (!parsed.success)
+      return toast.error("Enter a valid email and a password of at least 6 characters.");
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -42,11 +45,24 @@ function SignupPage() {
   };
 
   const onGoogle = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
     if (result.error) return toast.error(result.error.message ?? "Google sign-in failed.");
     if (result.redirected) return;
     navigate({ to: "/app" });
   };
 
-  return <AuthShell mode="signup" email={email} setEmail={setEmail} password={password} setPassword={setPassword} loading={loading} onSubmit={onSubmit} onGoogle={onGoogle} />;
+  return (
+    <AuthShell
+      mode="signup"
+      email={email}
+      setEmail={setEmail}
+      password={password}
+      setPassword={setPassword}
+      loading={loading}
+      onSubmit={onSubmit}
+      onGoogle={onGoogle}
+    />
+  );
 }

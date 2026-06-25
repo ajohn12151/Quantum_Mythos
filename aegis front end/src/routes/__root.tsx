@@ -78,11 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#0A0B14" },
+      { name: "theme-color", content: "#F4F7FA" },
       { title: "Aegis — Quantum cryptographic posture management" },
-      { name: "description", content: "Discover, prioritize, remediate, and verify the cryptography quantum will break." },
+      {
+        name: "description",
+        content: "Discover, prioritize, remediate, and verify the cryptography quantum will break.",
+      },
       { property: "og:title", content: "Aegis — Quantum cryptographic posture management" },
-      { property: "og:description", content: "See the cryptography quantum will break — before someone harvests it." },
+      {
+        property: "og:description",
+        content: "See the cryptography quantum will break — before someone harvests it.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -114,7 +120,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster theme="dark" richColors position="top-right" />
+      <Toaster theme="light" richColors position="top-right" />
     </QueryClientProvider>
   );
 }

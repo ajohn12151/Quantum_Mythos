@@ -16,9 +16,16 @@ export function AegisLogo({ className = "", withWordmark = true, size = 28 }: Ae
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="aegis-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#22D3EE" />
-            <stop offset="100%" stopColor="#7C3AED" />
+          <linearGradient
+            id="aegis-grad"
+            x1="0"
+            y1="0"
+            x2="32"
+            y2="32"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="#5C7E8F" />
+            <stop offset="100%" stopColor="#AFC3CE" />
           </linearGradient>
         </defs>
         <path

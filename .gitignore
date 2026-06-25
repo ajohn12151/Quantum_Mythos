@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build output
+.vercel/
+.output/
+dist/
+
+# Local Claude Code / agent tooling state (not part of the project)
+.claude/
+.agents/

@@ -2,41 +2,43 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, GitBranch, Globe, Loader2, Play, Square, Terminal } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
+import { Reveal } from "@/components/marketing/Reveal";
+import { useCountUp } from "@/hooks/use-count-up";
 
 export const Route = createFileRoute("/_authenticated/app/scan")({ component: ScanPage });
 
 type Mode = "domain" | "repo";
 
 const DOMAIN_SCRIPT: Line[] = [
-  { kind: "cmd",   text: "$ aegis scan acme.com --depth=subdomains+ct" },
-  { kind: "info",  text: "→ Resolving DNS, CT logs, passive sources…" },
-  { kind: "info",  text: "→ 412 subdomains discovered (crt.sh, ctlogs.io, internal)" },
-  { kind: "info",  text: "→ Probing TLS on 412 endpoints (parallel=32)" },
-  { kind: "tls",   host: "api.acme.com",          algo: "RSA-2048",   status: "broken" },
-  { kind: "tls",   host: "checkout.acme.com",     algo: "ECDSA-P256", status: "broken" },
-  { kind: "tls",   host: "admin.acme.com",        algo: "X25519MLKEM768", status: "safe" },
-  { kind: "tls",   host: "vault.acme.internal",   algo: "RSA-4096",   status: "broken" },
-  { kind: "tls",   host: "edi.acme.com",          algo: "DH-2048",    status: "broken" },
-  { kind: "tls",   host: "otel.acme.internal",    algo: "AES-128",    status: "weakened" },
-  { kind: "tls",   host: "legacy-sso.acme.com",   algo: "SHA-1",      status: "broken" },
-  { kind: "info",  text: "→ Probing SSH banners on 27 bastions…" },
-  { kind: "tls",   host: "git-bastion-01",        algo: "Ed25519",    status: "broken" },
-  { kind: "info",  text: "→ Mining MX & SMTP TLS profiles…" },
-  { kind: "info",  text: "→ Cross-referencing against CT log historical issuance" },
-  { kind: "ok",    text: "✓ Scan scn_92 complete in 47.3s — 27 findings written to inventory" },
+  { kind: "cmd", text: "$ aegis scan acme.com --depth=subdomains+ct" },
+  { kind: "info", text: "→ Resolving DNS, CT logs, passive sources…" },
+  { kind: "info", text: "→ 412 subdomains discovered (crt.sh, ctlogs.io, internal)" },
+  { kind: "info", text: "→ Probing TLS on 412 endpoints (parallel=32)" },
+  { kind: "tls", host: "api.acme.com", algo: "RSA-2048", status: "broken" },
+  { kind: "tls", host: "checkout.acme.com", algo: "ECDSA-P256", status: "broken" },
+  { kind: "tls", host: "admin.acme.com", algo: "X25519MLKEM768", status: "safe" },
+  { kind: "tls", host: "vault.acme.internal", algo: "RSA-4096", status: "broken" },
+  { kind: "tls", host: "edi.acme.com", algo: "DH-2048", status: "broken" },
+  { kind: "tls", host: "otel.acme.internal", algo: "AES-128", status: "weakened" },
+  { kind: "tls", host: "legacy-sso.acme.com", algo: "SHA-1", status: "broken" },
+  { kind: "info", text: "→ Probing SSH banners on 27 bastions…" },
+  { kind: "tls", host: "git-bastion-01", algo: "Ed25519", status: "broken" },
+  { kind: "info", text: "→ Mining MX & SMTP TLS profiles…" },
+  { kind: "info", text: "→ Cross-referencing against CT log historical issuance" },
+  { kind: "ok", text: "✓ Scan scn_92 complete in 47.3s — 27 findings written to inventory" },
 ];
 
 const REPO_SCRIPT: Line[] = [
-  { kind: "cmd",   text: "$ aegis scan --repo github.com/acme/payments-svc" },
-  { kind: "info",  text: "→ Cloning shallow @ HEAD (depth=1) …" },
-  { kind: "info",  text: "→ Parsing Go AST + go.sum (1,284 files, 312 deps)" },
-  { kind: "tls",   host: "internal/jwt/sign.go:42",    algo: "ECDSA-P256", status: "broken" },
-  { kind: "tls",   host: "vendor/crypto-tls:openssl",  algo: "RSA-2048",   status: "broken" },
-  { kind: "tls",   host: "internal/storage/aead.go",   algo: "AES-256",    status: "safe" },
-  { kind: "tls",   host: "cmd/sign/release.go:88",     algo: "ML-DSA-65",  status: "safe" },
-  { kind: "info",  text: "→ Resolving call graph for crypto/* usages" },
-  { kind: "info",  text: "→ 14 sinks reach external surfaces (TLS, JWT, JWS)" },
-  { kind: "ok",    text: "✓ Scan scn_93 complete — 14 findings, 2 require dependency bumps" },
+  { kind: "cmd", text: "$ aegis scan --repo github.com/acme/payments-svc" },
+  { kind: "info", text: "→ Cloning shallow @ HEAD (depth=1) …" },
+  { kind: "info", text: "→ Parsing Go AST + go.sum (1,284 files, 312 deps)" },
+  { kind: "tls", host: "internal/jwt/sign.go:42", algo: "ECDSA-P256", status: "broken" },
+  { kind: "tls", host: "vendor/crypto-tls:openssl", algo: "RSA-2048", status: "broken" },
+  { kind: "tls", host: "internal/storage/aead.go", algo: "AES-256", status: "safe" },
+  { kind: "tls", host: "cmd/sign/release.go:88", algo: "ML-DSA-65", status: "safe" },
+  { kind: "info", text: "→ Resolving call graph for crypto/* usages" },
+  { kind: "info", text: "→ 14 sinks reach external surfaces (TLS, JWT, JWS)" },
+  { kind: "ok", text: "✓ Scan scn_93 complete — 14 findings, 2 require dependency bumps" },
 ];
 
 type Line =
@@ -54,6 +56,10 @@ function ScanPage() {
   const timers = useRef<number[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const findingsCount = (mode === "domain" ? DOMAIN_SCRIPT : REPO_SCRIPT).filter(
+    (l) => l.kind === "tls",
+  ).length;
+
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
 
   useEffect(() => {
@@ -67,13 +73,16 @@ function ScanPage() {
     setLines([]);
     const script = mode === "domain" ? DOMAIN_SCRIPT : REPO_SCRIPT;
     script.forEach((line, i) => {
-      const id = window.setTimeout(() => {
-        setLines((prev) => [...prev, line]);
-        if (i === script.length - 1) {
-          setRunning(false);
-          setComplete(true);
-        }
-      }, 350 + i * 420);
+      const id = window.setTimeout(
+        () => {
+          setLines((prev) => [...prev, line]);
+          if (i === script.length - 1) {
+            setRunning(false);
+            setComplete(true);
+          }
+        },
+        350 + i * 420,
+      );
       timers.current.push(id);
     });
   }
@@ -94,20 +103,30 @@ function ScanPage() {
       <div className="grid gap-6 px-8 py-8 lg:grid-cols-[420px_1fr]">
         <aside className="space-y-6">
           <div className="surface p-5">
-            <div className="flex gap-1 rounded-md border border-border bg-elevated-2 p-1">
-              <ModeBtn active={mode === "domain"} onClick={() => setMode("domain")} icon={Globe} label="Domain" />
-              <ModeBtn active={mode === "repo"} onClick={() => setMode("repo")} icon={GitBranch} label="Repository" />
+            <div className="flex gap-1 rounded-lg border border-border bg-muted p-1">
+              <ModeBtn
+                active={mode === "domain"}
+                onClick={() => setMode("domain")}
+                icon={Globe}
+                label="Domain"
+              />
+              <ModeBtn
+                active={mode === "repo"}
+                onClick={() => setMode("repo")}
+                icon={GitBranch}
+                label="Repository"
+              />
             </div>
 
             <div className="mt-5 space-y-3">
-              <label className="block font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <label className="block font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {mode === "domain" ? "Target domain" : "Repository URL"}
               </label>
               <input
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
                 placeholder={mode === "domain" ? "acme.com" : "github.com/acme/payments-svc"}
-                className="h-10 w-full rounded-md border border-border bg-elevated-2 px-3 font-mono text-sm focus:border-quantum-cyan focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-10 w-full rounded-lg border border-border bg-card px-3 font-mono text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <Toggle label="Probe TLS" defaultOn />
@@ -122,14 +141,14 @@ function ScanPage() {
                 <button
                   onClick={start}
                   disabled={!target}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-quantum px-4 text-sm font-medium text-primary-foreground glow-cyan transition-transform hover:scale-[1.02] disabled:opacity-50"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Play className="h-4 w-4" /> Run scan
                 </button>
               ) : (
                 <button
                   onClick={cancel}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-border bg-elevated-2 px-4 text-sm text-foreground hover:border-destructive/40 hover:text-destructive"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm text-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
                 >
                   <Square className="h-4 w-4" /> Cancel
                 </button>
@@ -138,24 +157,37 @@ function ScanPage() {
           </div>
 
           {complete && (
-            <div className="surface animate-fade-in p-5">
-              <div className="flex items-center gap-2 text-pqc">
-                <CheckCircle2 className="h-4 w-4" />
-                <span className="text-sm font-medium">Scan complete</span>
+            <Reveal immediate className="surface animate-fade-in p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-pqc">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Scan complete</span>
+                </div>
+                <FindingsCount target={findingsCount} start={complete} />
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                 Findings have been written to your inventory and the prioritization queue.
               </p>
               <div className="mt-4 flex gap-2">
-                <Link to="/app/assets" className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-quantum px-3 text-xs font-medium text-primary-foreground">View assets</Link>
-                <Link to="/app/prioritization" className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-border bg-elevated-2 px-3 text-xs hover:text-quantum-cyan">Prioritize</Link>
+                <Link
+                  to="/app/assets"
+                  className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  View assets
+                </Link>
+                <Link
+                  to="/app/prioritization"
+                  className="inline-flex h-9 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent/60"
+                >
+                  Prioritize
+                </Link>
               </div>
-            </div>
+            </Reveal>
           )}
         </aside>
 
         <div className="surface relative overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border bg-elevated-2/40 px-4 py-2.5">
+          <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2.5">
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-shor/70" />
@@ -167,27 +199,42 @@ function ScanPage() {
               </span>
             </div>
             <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {running ? (<><Loader2 className="h-3 w-3 animate-spin text-quantum-cyan" /> running</>) : (<><Terminal className="h-3 w-3" /> idle</>)}
+              {running ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-quantum-cyan" /> running
+                </>
+              ) : (
+                <>
+                  <Terminal className="h-3 w-3" /> idle
+                </>
+              )}
             </div>
           </div>
 
           <div
             ref={scrollRef}
-            className="relative h-[520px] overflow-auto bg-[oklch(0.10_0.025_265)] p-5 font-mono text-[12.5px] leading-relaxed"
+            className="relative h-[520px] overflow-auto rounded-b-xl bg-muted p-5 font-mono text-[12.5px] leading-relaxed"
           >
             {running && (
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px animate-scan bg-quantum-cyan/60" />
             )}
             {lines.length === 0 && !running && (
               <div className="text-muted-foreground">
-                <span className="text-quantum-cyan">aegis</span> ready. Press <span className="rounded border border-border bg-elevated-2 px-1.5 py-0.5 text-[10px]">Run scan</span> to begin.
+                <span className="text-quantum-cyan">aegis</span> ready. Press{" "}
+                <span className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+                  Run scan
+                </span>{" "}
+                to begin.
               </div>
             )}
             {lines.map((l, i) => (
               <LineRow key={i} line={l} />
             ))}
             {running && (
-              <div className="mt-1 inline-block h-4 w-2 animate-pulse bg-quantum-cyan" aria-hidden />
+              <div
+                className="mt-1 inline-block h-4 w-2 animate-pulse bg-quantum-cyan"
+                aria-hidden
+              />
             )}
           </div>
         </div>
@@ -196,12 +243,28 @@ function ScanPage() {
   );
 }
 
+function FindingsCount({ target, start }: { target: number; start: boolean }) {
+  const n = useCountUp(target, { start, duration: 700 });
+  return (
+    <span className="inline-flex items-baseline gap-1 font-mono text-xs text-muted-foreground">
+      <span className="text-base font-semibold tabular-nums text-foreground">{n}</span>
+      findings
+    </span>
+  );
+}
+
 function LineRow({ line }: { line: Line }) {
   if (line.kind === "cmd") return <div className="text-foreground">{line.text}</div>;
   if (line.kind === "info") return <div className="text-muted-foreground">{line.text}</div>;
   if (line.kind === "ok") return <div className="mt-1 text-pqc">{line.text}</div>;
-  const color = line.status === "broken" ? "text-shor" : line.status === "weakened" ? "text-grover" : "text-pqc";
-  const tag = line.status === "broken" ? "BROKEN" : line.status === "weakened" ? "WEAK  " : "SAFE  ";
+  const color =
+    line.status === "broken"
+      ? "text-shor"
+      : line.status === "weakened"
+        ? "text-grover"
+        : "text-pqc";
+  const tag =
+    line.status === "broken" ? "BROKEN" : line.status === "weakened" ? "WEAK  " : "SAFE  ";
   return (
     <div className="animate-fade-in flex gap-3">
       <span className={`${color}`}>[{tag}]</span>
@@ -212,12 +275,24 @@ function LineRow({ line }: { line: Line }) {
   );
 }
 
-function ModeBtn({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof Globe; label: string }) {
+function ModeBtn({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof Globe;
+  label: string;
+}) {
   return (
     <button
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-        active ? "bg-quantum text-primary-foreground glow-cyan" : "text-muted-foreground hover:text-foreground"
+        active
+          ? "bg-card text-foreground shadow-[var(--shadow-sm)]"
+          : "text-muted-foreground hover:text-foreground"
       }`}
     >
       <Icon className="h-3.5 w-3.5" /> {label}
@@ -231,11 +306,15 @@ function Toggle({ label, defaultOn }: { label: string; defaultOn?: boolean }) {
     <button
       onClick={() => setOn(!on)}
       className={`flex items-center justify-between rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-        on ? "border-quantum-cyan/40 bg-quantum-soft text-foreground" : "border-border bg-elevated-2 text-muted-foreground"
+        on
+          ? "border-primary/30 bg-accent text-accent-foreground"
+          : "border-border bg-muted text-muted-foreground"
       }`}
     >
       <span>{label}</span>
-      <span className={`h-1.5 w-1.5 rounded-full ${on ? "bg-quantum-cyan" : "bg-muted"}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${on ? "bg-primary" : "bg-muted-foreground/40"}`}
+      />
     </button>
   );
 }
