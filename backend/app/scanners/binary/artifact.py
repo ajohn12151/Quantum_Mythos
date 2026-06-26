@@ -48,6 +48,7 @@ class ArtifactScan:
             "vulnerable_binaries": len(det),
             "high_confidence": sum(f.confidence == "high" for f in det),
             "low_confidence": sum(f.confidence == "low" for f in det),
+            "scan_errors": sum(bool(f.error) for f in self.findings),
             "families": dict(sorted(fams.items())),
         }
 
@@ -88,7 +89,17 @@ def iter_binaries(root: str):
                 yield str(fp)
 
 
-def scan_path(root: str) -> ArtifactScan:
-    """Scan a file or directory tree; return a finding per parseable binary."""
-    findings = [scan_binary(b) for b in iter_binaries(root)]
+def scan_path(root: str, *, sandbox: bool = True, timeout_s: int = 30) -> ArtifactScan:
+    """Scan a file or directory tree; return a finding per parseable binary.
+
+    sandbox=True (default) runs each scan in an isolated, resource-capped worker —
+    use it for untrusted input. sandbox=False scans in-process (faster; only for
+    inputs you trust, e.g. your own build output or the test corpus).
+    """
+    paths = list(iter_binaries(root))
+    if sandbox:
+        from .sandbox import scan_isolated
+        findings = scan_isolated(paths, timeout_s=timeout_s)
+    else:
+        findings = [scan_binary(b) for b in paths]
     return ArtifactScan(target=root, findings=findings)

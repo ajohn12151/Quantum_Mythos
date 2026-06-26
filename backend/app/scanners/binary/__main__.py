@@ -24,12 +24,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--image", metavar="REF", help="scan a container image (e.g. nginx:alpine)")
     ap.add_argument("--cbom", metavar="FILE", help="write a CycloneDX CBOM here")
     ap.add_argument("--json", action="store_true", help="emit findings as JSON")
+    ap.add_argument("--no-sandbox", action="store_true",
+                    help="scan in-process (faster; only for inputs you trust)")
+    ap.add_argument("--timeout", type=int, default=30, help="per-binary timeout (s)")
     args = ap.parse_args(argv)
 
+    sandbox = not args.no_sandbox
     if args.image:
-        scan = scan_image(args.image)
+        scan = scan_image(args.image, sandbox=sandbox, timeout_s=args.timeout)
     elif args.path:
-        scan = scan_path(args.path)
+        scan = scan_path(args.path, sandbox=sandbox, timeout_s=args.timeout)
     else:
         ap.error("provide a PATH or --image REF")
     summary = scan.summary()

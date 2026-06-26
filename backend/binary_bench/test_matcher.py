@@ -170,6 +170,25 @@ def test_is_binary_magic():
     assert not is_binary_magic(b"{\n  ")            # json/text
 
 
+def test_sandbox_matches_direct_and_times_out():
+    """Sandboxed scan matches the in-process result, and a too-short timeout on a
+    slow (Tier-C) binary yields an error finding instead of hanging."""
+    from app.scanners.binary.scan import scan_binary
+    from app.scanners.binary.sandbox import safe_scan_binary
+    binroot = Path(__file__).resolve().parent / "bin"
+    dyn = binroot / "rsa_keygen__elf-x86_64__gcc-O0__dynamic__sym"
+    slow = binroot / "rsa_keygen__elf-x86_64__gcc-O3__static__sym"
+    if not (dyn.exists() and slow.exists()):
+        print("  SKIP test_sandbox_matches_direct_and_times_out (run build.py first)")
+        return
+    direct = scan_binary(str(dyn))
+    sb = safe_scan_binary(str(dyn))
+    assert sb.error is None and sb.families == direct.families and sb.detected
+    # static binary needs ~2s of Tier C; a 1s cap must abort it cleanly
+    timed = safe_scan_binary(str(slow), timeout_s=1)
+    assert timed.error and not timed.detected
+
+
 def test_cbom_structure():
     from app.scanners.binary.cbom import build_cbom
     bom = build_cbom(
@@ -194,7 +213,7 @@ def test_artifact_scan_and_cbom_when_built():
     if not (binroot / "rsa_keygen__elf-x86_64__gcc-O0__dynamic__sym").exists():
         print("  SKIP test_artifact_scan_and_cbom_when_built (run build.py first)")
         return
-    scan = scan_path(str(binroot))
+    scan = scan_path(str(binroot), sandbox=False)   # trusted corpus -> fast in-process
     assert len(scan.findings) > 50 and len(scan.detected) > 0
     det_names = {f.path.rsplit("/", 1)[-1] for f in scan.detected}
     # a symmetric-only dynamic control must not be flagged

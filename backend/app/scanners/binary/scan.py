@@ -38,6 +38,7 @@ class BinaryFinding:
     hndl: str = "low"
     evidence: list[str] = field(default_factory=list)
     note: str = ""
+    error: str | None = None              # set when a sandboxed scan failed/timed out
 
     def to_dict(self) -> dict:
         return asdict(self)
