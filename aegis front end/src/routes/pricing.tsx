@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MotionConfig } from "framer-motion";
+import { Check, Minus } from "lucide-react";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { AuroraBackground } from "@/components/marketing/AuroraBackground";
+import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { Reveal, Stagger, StaggerItem } from "@/components/marketing/Reveal";
-import { Check, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -27,77 +30,89 @@ export const Route = createFileRoute("/pricing")({
 function PricingPage() {
   return (
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen text-foreground">
         <MarketingHeader />
-        <main className="mx-auto max-w-7xl px-6 pt-36 pb-28">
-          <Reveal className="text-center">
-            <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              <span className="h-px w-6 bg-border" />
-              Pricing
-              <span className="h-px w-6 bg-border" />
-            </div>
-            <h1 className="mx-auto mt-5 max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-5xl">
-              Start free. Move to continuous when you're ready.
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Every tier ships with the same reasoning engine. You choose the surface.
-            </p>
-          </Reveal>
 
-          <Stagger className="mt-16 grid items-start gap-6 lg:grid-cols-3">
-            <StaggerItem>
-              <Tier
-                name="Free wedge"
-                price="$0"
-                sub="Single domain · on-demand"
-                cta="Run a scan"
-                href="/signup"
-                features={[
-                  "Type a domain → external quantum-risk report",
-                  "TLS / SSH / mail crypto inventory",
-                  "CT-log subdomain enumeration",
-                  "Shareable read-only report",
-                ]}
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <Tier
-                name="Team"
-                price="$1,500"
-                unit="/mo"
-                sub="Continuous external monitoring"
-                cta="Start trial"
-                href="/signup"
-                highlight
-                features={[
-                  "Up to 25 monitored domains",
-                  "Continuous re-scanning + change alerts",
-                  "Full dashboard, posture-over-time, HNDL spotlight",
-                  "Slack / email / webhook notifications",
-                  "CSV + CBOM export",
-                ]}
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <Tier
-                name="Enterprise"
-                price="Custom"
-                sub="White-box + remediation pipeline"
-                cta="Contact us"
-                href="#"
-                features={[
-                  "White-box repo scanning & CBOM (CycloneDX)",
-                  "Reasoning engine + migration PRs",
-                  "Compliance & audit module",
-                  "SSO (SAML), API access, audit log",
-                  "Dedicated post-quantum migration architect",
-                ]}
-              />
-            </StaggerItem>
-          </Stagger>
+        {/* Hero — shared aurora pattern with how-it-works / reading */}
+        <section className="relative isolate overflow-hidden border-b border-border bg-background pb-16 pt-36">
+          <AuroraBackground />
+          <div className="relative z-10 mx-auto max-w-5xl px-6">
+            <Reveal>
+              <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                <span className="h-px w-6 bg-primary/40" />
+                Pricing
+              </div>
+              <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-[1.06] tracking-tight md:text-5xl">
+                Start free. Move to continuous when you're ready.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                Every tier ships with the same reasoning engine. You choose the surface — a one-off
+                external scan, continuous monitoring, or full white-box migration.
+              </p>
+            </Reveal>
+          </div>
+        </section>
 
-          <ComparisonTable />
-        </main>
+        {/* Tiers + comparison */}
+        <section className="relative overflow-hidden py-20">
+          <AuroraBackground intensity="ambient" />
+          <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <Stagger className="grid items-start gap-6 lg:grid-cols-3">
+              <StaggerItem>
+                <Tier
+                  name="Free wedge"
+                  price="$0"
+                  sub="Single domain · on-demand"
+                  cta="Run a scan"
+                  href="/signup"
+                  features={[
+                    "Type a domain → external quantum-risk report",
+                    "TLS / SSH / mail crypto inventory",
+                    "CT-log subdomain enumeration",
+                    "Shareable read-only report",
+                  ]}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <Tier
+                  name="Team"
+                  price="$1,500"
+                  unit="/mo"
+                  sub="Continuous external monitoring"
+                  cta="Start trial"
+                  href="/signup"
+                  highlight
+                  features={[
+                    "Up to 25 monitored domains",
+                    "Continuous re-scanning + change alerts",
+                    "Full dashboard, posture-over-time, HNDL spotlight",
+                    "Slack / email / webhook notifications",
+                    "CSV + CBOM export",
+                  ]}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <Tier
+                  name="Enterprise"
+                  price="Custom"
+                  sub="White-box + remediation pipeline"
+                  cta="Contact us"
+                  href="#"
+                  features={[
+                    "White-box repo scanning & CBOM (CycloneDX)",
+                    "Reasoning engine + migration PRs",
+                    "Compliance & audit module",
+                    "SSO (SAML), API access, audit log",
+                    "Dedicated post-quantum migration architect",
+                  ]}
+                />
+              </StaggerItem>
+            </Stagger>
+
+            <ComparisonTable />
+          </div>
+        </section>
+
         <MarketingFooter />
       </div>
     </MotionConfig>
@@ -124,21 +139,23 @@ function Tier({
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`lift relative flex flex-col p-8 ${
-        highlight
-          ? "gradient-border rounded-xl shadow-[var(--shadow-card-lg)] lg:-mt-4 lg:mb-4"
-          : "card-premium"
-      }`}
-    >
-      {highlight && (
-        <div className="absolute -top-3 left-8 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-sm)]">
-          Most popular
-        </div>
+    <SpotlightCard
+      className={cn(
+        "rounded-xl",
+        highlight && "ring-1 ring-primary/30 shadow-[var(--shadow-card-lg)] lg:-mt-4 lg:mb-4",
       )}
+      innerClassName="flex h-full flex-col p-8"
+    >
       <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          {name}
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {name}
+          </div>
+          {highlight && (
+            <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-sm)]">
+              Most popular
+            </span>
+          )}
         </div>
         <div className="mt-4 flex items-baseline gap-1.5">
           <span className="text-4xl font-semibold tracking-tight">{price}</span>
@@ -159,15 +176,16 @@ function Tier({
       </ul>
       <Link
         to={href}
-        className={`mt-8 inline-flex h-11 items-center justify-center rounded-md text-sm font-medium transition-colors ${
+        className={cn(
+          "mt-8 inline-flex h-11 items-center justify-center rounded-md text-sm font-medium transition-colors",
           highlight
             ? "bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:bg-primary/90"
-            : "border border-border bg-elevated-2 text-foreground hover:bg-muted"
-        }`}
+            : "border border-border bg-elevated-2 text-foreground hover:bg-muted",
+        )}
       >
         {cta}
       </Link>
-    </div>
+    </SpotlightCard>
   );
 }
 
@@ -190,23 +208,25 @@ function ComparisonTable() {
     <Reveal className="mt-28">
       <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Compare every tier</h2>
       <div className="surface mt-8 overflow-hidden">
-        <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] border-b border-border bg-elevated-2 px-5 py-3.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+        <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] border-b border-border bg-elevated-2 px-5 py-3.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           <div>Feature</div>
           <div>Free</div>
-          <div>Team</div>
+          <div className="text-primary">Team</div>
           <div>Enterprise</div>
         </div>
-        {rows.map(([label, a, b, c]) => (
-          <div
-            key={label}
-            className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] items-center border-b border-border px-5 py-3.5 last:border-b-0"
-          >
-            <div className="text-sm">{label}</div>
-            <Cell v={a} />
-            <Cell v={b} />
-            <Cell v={c} />
-          </div>
-        ))}
+        <Stagger>
+          {rows.map(([label, a, b, c]) => (
+            <StaggerItem
+              key={label}
+              className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] items-center border-b border-border px-5 py-3.5 last:border-b-0"
+            >
+              <div className="text-sm">{label}</div>
+              <Cell v={a} />
+              <Cell v={b} />
+              <Cell v={c} />
+            </StaggerItem>
+          ))}
+        </Stagger>
       </div>
     </Reveal>
   );

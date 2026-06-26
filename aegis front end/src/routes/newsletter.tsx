@@ -111,11 +111,11 @@ function Newsletter() {
               Reading list
             </div>
             <h1 className="mt-5 max-w-3xl text-balance text-4xl font-semibold leading-[1.06] tracking-tight md:text-5xl">
-              The quantum-security signal, without the noise.
+              Read what moves the <span className="text-gradient">quantum timeline</span>.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              A short, curated reading list on post-quantum cryptography — the standards, the
-              deadlines, and the research that moves the timeline. We send the occasional update
+              A tight, curated feed on post-quantum cryptography — the standards, the deadlines, and
+              the research that pulls "someday" closer. No churn, no hype: we only send an update
               when something genuinely matters.
             </p>
           </Reveal>
@@ -127,38 +127,13 @@ function Newsletter() {
 
       <section className="relative py-20">
         <div className="mx-auto max-w-5xl px-6">
-          <Stagger className="grid gap-5 md:grid-cols-2">
-            {ARTICLES.map((a) => (
+          <Reveal>
+            <FeaturedArticle a={ARTICLES[0]} />
+          </Reveal>
+          <Stagger className="mt-5 grid gap-5 md:grid-cols-2">
+            {ARTICLES.slice(1).map((a) => (
               <StaggerItem key={a.href}>
-                <a href={a.href} target="_blank" rel="noopener noreferrer" className="block h-full">
-                  <SpotlightCard
-                    className="h-full rounded-2xl p-6"
-                    innerClassName="flex h-full flex-col"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span
-                        className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                        style={{
-                          color: tagColor[a.tag],
-                          background: `color-mix(in oklab, ${tagColor[a.tag]} 12%, transparent)`,
-                          border: `1px solid color-mix(in oklab, ${tagColor[a.tag]} 28%, transparent)`,
-                        }}
-                      >
-                        {a.tag}
-                      </span>
-                      <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover/spot:translate-x-0.5 group-hover/spot:-translate-y-0.5" />
-                    </div>
-                    <h2 className="mt-4 text-lg font-semibold leading-snug tracking-tight">
-                      {a.title}
-                    </h2>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {a.blurb}
-                    </p>
-                    <div className="mt-4 text-xs font-medium text-muted-foreground">
-                      {a.source} · {a.date}
-                    </div>
-                  </SpotlightCard>
-                </a>
+                <ArticleCard a={a} />
               </StaggerItem>
             ))}
           </Stagger>
@@ -167,6 +142,79 @@ function Newsletter() {
 
       <MarketingFooter />
     </div>
+  );
+}
+
+function TagPill({ tag }: { tag: Article["tag"] }) {
+  return (
+    <span
+      className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider"
+      style={{
+        color: tagColor[tag],
+        background: `color-mix(in oklab, ${tagColor[tag]} 12%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${tagColor[tag]} 28%, transparent)`,
+      }}
+    >
+      {tag}
+    </span>
+  );
+}
+
+/** The lead article — a wide, prominent card spanning the full row. */
+function FeaturedArticle({ a }: { a: Article }) {
+  return (
+    <a href={a.href} target="_blank" rel="noopener noreferrer" className="block">
+      <SpotlightCard
+        className="overflow-hidden rounded-2xl"
+        innerClassName="flex flex-col p-8 pl-9 md:p-10 md:pl-11"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-1.5"
+          style={{ background: tagColor[a.tag] }}
+        />
+        <div className="flex items-center gap-3">
+          <TagPill tag={a.tag} />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Featured
+          </span>
+          <ArrowUpRight className="ml-auto h-5 w-5 text-muted-foreground transition-transform group-hover/spot:-translate-y-0.5 group-hover/spot:translate-x-0.5" />
+        </div>
+        <h2 className="mt-5 max-w-3xl text-balance text-2xl font-semibold leading-tight tracking-tight md:text-3xl">
+          {a.title}
+        </h2>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">{a.blurb}</p>
+        <div className="mt-5 text-xs font-medium text-muted-foreground">
+          {a.source} · {a.date}
+        </div>
+      </SpotlightCard>
+    </a>
+  );
+}
+
+function ArticleCard({ a }: { a: Article }) {
+  return (
+    <a href={a.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+      <SpotlightCard
+        className="h-full overflow-hidden rounded-2xl"
+        innerClassName="flex h-full flex-col p-6 pl-7"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-1"
+          style={{ background: tagColor[a.tag] }}
+        />
+        <div className="flex items-center justify-between gap-3">
+          <TagPill tag={a.tag} />
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover/spot:-translate-y-0.5 group-hover/spot:translate-x-0.5" />
+        </div>
+        <h3 className="mt-4 text-lg font-semibold leading-snug tracking-tight">{a.title}</h3>
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{a.blurb}</p>
+        <div className="mt-4 text-xs font-medium text-muted-foreground">
+          {a.source} · {a.date}
+        </div>
+      </SpotlightCard>
+    </a>
   );
 }
 

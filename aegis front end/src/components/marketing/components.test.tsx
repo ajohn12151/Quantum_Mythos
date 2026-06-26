@@ -4,6 +4,7 @@ import { AuroraBackground } from "./AuroraBackground";
 import { PageBackdrop } from "./PageBackdrop";
 import { QuantumBackground } from "./QuantumBackground";
 import { NetworkScan } from "./NetworkScan";
+import { CodeScan } from "./CodeScan";
 import { CursorGlow } from "./CursorGlow";
 import { SpotlightCard } from "./SpotlightCard";
 import { TiltMedia } from "./TiltMedia";
@@ -17,8 +18,14 @@ describe("marketing effect layers mount without crashing (jsdom)", () => {
       render(<PageBackdrop />);
       render(<QuantumBackground />);
       render(<NetworkScan />);
+      render(<CodeScan />);
       render(<CursorGlow />);
     }).not.toThrow();
+  });
+
+  it("CodeScan renders its scanned filename", () => {
+    render(<CodeScan />);
+    expect(screen.getAllByText("auth/session.py").length).toBeGreaterThanOrEqual(1);
   });
 });
 

@@ -19,6 +19,7 @@ import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { AuroraBackground } from "@/components/marketing/AuroraBackground";
 import { NetworkScan } from "@/components/marketing/NetworkScan";
+import { CodeScan } from "@/components/marketing/CodeScan";
 import { AppWindow } from "@/components/marketing/AppWindow";
 import { Reveal, Stagger, StaggerItem } from "@/components/marketing/Reveal";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
@@ -130,15 +131,16 @@ function HowItWorks() {
             <div>
               <Reveal>
                 <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  <Eye className="h-3.5 w-3.5" /> Black-box
+                  <Eye className="h-3.5 w-3.5" /> Black-box · Outside view
                 </div>
                 <h2 className="mt-4 text-balance text-3xl font-semibold leading-[1.12] tracking-tight md:text-4xl">
                   Point it at a domain. Zero integration.
                 </h2>
                 <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-                  You give Aegis nothing but a domain name. It looks at your organization the way an
-                  attacker would — from the outside — and inventories the cryptography you're
-                  actually exposing to the internet.
+                  Give Aegis nothing but a domain name. It looks at you the way an attacker would —
+                  from the outside — and inventories the cryptography you're actually exposing to
+                  the internet. This is{" "}
+                  <span className="font-medium text-foreground/80">what the world can see</span>.
                 </p>
               </Reveal>
               <Stagger className="mt-8 space-y-3">
@@ -168,62 +170,70 @@ function HowItWorks() {
 
       {/* White-box */}
       <section className="relative border-b border-border py-24">
-        <div className="mx-auto max-w-5xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <Reveal>
             <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              <Code2 className="h-3.5 w-3.5" /> White-box
+              <Code2 className="h-3.5 w-3.5" /> White-box · Inside view
             </div>
             <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold leading-[1.12] tracking-tight md:text-4xl">
               Connect a repo. See the crypto in your code — and migrate it.
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              When you grant repository access, Aegis goes deeper — into the source itself — and
-              runs a closed loop.
+              Grant repository access and Aegis goes deeper — into the source itself. This is{" "}
+              <span className="font-medium text-foreground/80">what's inside your code</span>: it
+              finds the vulnerable crypto, proposes the fix as a pull request you review, and proves
+              it's gone. A closed loop.
             </p>
           </Reveal>
 
-          {/* Animated beam stepper */}
-          <div className="relative mt-12">
-            <div className="pointer-events-none absolute bottom-8 left-[2.25rem] top-8 w-0.5 -translate-x-1/2 overflow-hidden rounded-full">
-              <div className="absolute inset-0 bg-border" />
-              <div
-                className="motion-safe:animate-beam-travel absolute inset-x-0 h-16"
-                style={{
-                  background:
-                    "linear-gradient(to bottom, transparent, var(--blue-electric), transparent)",
-                }}
-              />
-            </div>
-            <Stagger className="space-y-3">
-              {WHITEBOX.map((s, i) => (
-                <StaggerItem key={s.title}>
-                  <div className="relative flex gap-5 rounded-xl p-3">
-                    <div className="relative z-10 inline-flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-lg bg-primary text-primary-foreground shadow-glow">
-                      <s.icon className="h-5 w-5" />
-                    </div>
-                    <div className="pt-1.5">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-xs font-semibold tabular-nums text-primary/50">
-                          0{i + 1}
-                        </span>
-                        <h3 className="text-lg font-semibold tracking-tight">{s.title}</h3>
+          <div className="mt-12 grid items-start gap-12 lg:grid-cols-[1fr_1.05fr]">
+            {/* Animated beam stepper */}
+            <div className="relative">
+              <div className="pointer-events-none absolute bottom-8 left-[2.25rem] top-8 w-0.5 -translate-x-1/2 overflow-hidden rounded-full">
+                <div className="absolute inset-0 bg-border" />
+                <div
+                  className="motion-safe:animate-beam-travel absolute inset-x-0 h-16"
+                  style={{
+                    background:
+                      "linear-gradient(to bottom, transparent, var(--blue-electric), transparent)",
+                  }}
+                />
+              </div>
+              <Stagger className="space-y-3">
+                {WHITEBOX.map((s, i) => (
+                  <StaggerItem key={s.title}>
+                    <div className="relative flex gap-5 rounded-xl p-3">
+                      <div className="relative z-10 inline-flex h-12 w-12 shrink-0 items-center justify-center self-start rounded-lg bg-primary text-primary-foreground shadow-glow">
+                        <s.icon className="h-5 w-5" />
                       </div>
-                      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                        {s.body}
-                      </p>
+                      <div className="pt-1.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-semibold tabular-nums text-primary/50">
+                            0{i + 1}
+                          </span>
+                          <h3 className="text-lg font-semibold tracking-tight">{s.title}</h3>
+                        </div>
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                          {s.body}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
+                  </StaggerItem>
+                ))}
+              </Stagger>
+            </div>
 
-          <Reveal delay={0.1}>
-            <p className="mt-8 text-sm font-medium text-foreground/85">
-              The result is a living inventory of your cryptographic posture — discover, prioritize,
-              fix, and prove it's fixed.
-            </p>
-          </Reveal>
+            {/* Live code-scan demo */}
+            <Reveal delay={0.05} className="lg:sticky lg:top-28">
+              <AppWindow title="aegis · repo scan" live>
+                <CodeScan />
+              </AppWindow>
+              <p className="mt-4 text-sm font-medium text-foreground/85">
+                Discover → prioritize → propose → prove. The migration is always a pull request you
+                approve — Aegis never silently rewrites your crypto.
+              </p>
+            </Reveal>
+          </div>
         </div>
       </section>
 
