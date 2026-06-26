@@ -25,11 +25,13 @@ import { StatusBadge } from "@/components/app/StatusBadge";
 import { Reveal, Stagger, StaggerItem } from "@/components/marketing/Reveal";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { useCountUp } from "@/hooks/use-count-up";
-import { assets, postureSeries, recentScans, riskScore, totals } from "@/lib/mock-data";
+import { useDashboard, type DashboardView, type TopFinding } from "@/hooks/useDashboard";
 
 export const Route = createFileRoute("/_authenticated/app/")({ component: Dashboard });
 
 function Dashboard() {
+  const view = useDashboard();
+  const { totals } = view;
   return (
     <>
       <PageHeader
@@ -46,9 +48,14 @@ function Dashboard() {
         }
       />
       <div className="space-y-6 px-8 py-8">
+        {!view.live && (
+          <div className="rounded-lg border border-border bg-muted/50 px-4 py-2 font-mono text-[11px] text-muted-foreground">
+            Showing sample data — backend not reachable. Set VITE_API_BASE_URL to see live results.
+          </div>
+        )}
         <Stagger immediate className="grid gap-6 lg:grid-cols-3">
           <StaggerItem>
-            <RiskScoreCard />
+            <RiskScoreCard value={view.riskScore} />
           </StaggerItem>
           <StaggerItem className="grid gap-6 sm:grid-cols-3 lg:col-span-2">
             <CountCard
@@ -56,34 +63,34 @@ function Dashboard() {
               value={totals.broken}
               status="broken"
               icon={ShieldAlert}
-              delta="-23 this week"
+              delta="quantum-vulnerable"
             />
             <CountCard
               label="Grover-weakened"
               value={totals.weakened}
               status="weakened"
               icon={Shield}
-              delta="-3 this week"
+              delta="needs larger keys"
             />
             <CountCard
               label="Quantum-safe"
               value={totals.safe}
               status="safe"
               icon={ShieldCheck}
-              delta="+21 this week"
+              delta="PQC / resistant"
             />
-            <HndlCard />
+            <HndlCard exposed={totals.hndlExposed} />
           </StaggerItem>
         </Stagger>
 
         <Reveal as="section" immediate delay={0.1} className="grid gap-6 xl:grid-cols-3">
-          <PostureChart />
-          <MigrationBoard />
+          <PostureChart data={view.postureSeries} />
+          <MigrationBoard totals={totals} />
         </Reveal>
 
         <Reveal as="section" immediate delay={0.15} className="grid gap-6 lg:grid-cols-5">
-          <TopFindings />
-          <RecentScans />
+          <TopFindings items={view.topFindings} />
+          <RecentScans scans={view.recentScans} />
         </Reveal>
       </div>
     </>
@@ -92,8 +99,8 @@ function Dashboard() {
 
 /* ──────────────────────────────────────────────────────────────────────── */
 
-function RiskScoreCard() {
-  const value = useCountUp(riskScore, { duration: 900 });
+function RiskScoreCard({ value: target }: { value: number }) {
+  const value = useCountUp(target, { duration: 900 });
   const r = 64;
   const c = 2 * Math.PI * r;
   const offset = c - (value / 100) * c;
@@ -106,7 +113,7 @@ function RiskScoreCard() {
           Quantum risk score
         </div>
         <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
-          <Clock className="h-3 w-3" /> 12w window
+          <Clock className="h-3 w-3" /> live
         </span>
       </div>
       <div className="mt-4 flex items-center gap-6">
@@ -140,20 +147,14 @@ function RiskScoreCard() {
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-base font-medium">Elevated exposure</div>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Your perimeter still leans on Shor-vulnerable RSA & ECC. Migration is on track — score
-            is down <span className="text-pqc">14 points</span> since April.
-          </p>
-          <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1 text-pqc">
-              <TrendingDown className="h-3.5 w-3.5" /> -14 vs 60d ago
-            </span>
-            <span>•</span>
-            <span>
-              Target by Q4: <span className="font-mono text-foreground">≤ 30</span>
-            </span>
+          <div className="text-base font-medium">
+            {value >= 70 ? "Elevated exposure" : value >= 40 ? "Moderate exposure" : "Largely safe"}
           </div>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Share of your estate still on Shor-vulnerable RSA &amp; ECC, weighted by quantum
+            exposure. Drive it toward <span className="font-mono text-foreground">0</span> as assets
+            migrate to PQC.
+          </p>
         </div>
       </div>
     </div>
@@ -194,7 +195,7 @@ function CountCard({
   );
 }
 
-function HndlCard() {
+function HndlCard({ exposed }: { exposed: number }) {
   return (
     <div className="surface relative overflow-hidden p-5 sm:col-span-3">
       <div className="pointer-events-none absolute inset-0 -z-10 dot-bg opacity-40" />
@@ -206,12 +207,12 @@ function HndlCard() {
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">Harvest-now, decrypt-later spotlight</h3>
             <span className="status-shor rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider">
-              {totals.hndlExposed} exposed
+              {exposed} exposed
             </span>
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
             Long-lived secrets flowing over Shor-broken channels today can be decrypted once a CRQC
-            exists. These {totals.hndlExposed} assets carry the highest HNDL risk.
+            exists. These {exposed} assets carry the highest HNDL risk.
           </p>
         </div>
         <Link
@@ -225,7 +226,7 @@ function HndlCard() {
   );
 }
 
-function PostureChart() {
+function PostureChart({ data }: { data: DashboardView["postureSeries"] }) {
   return (
     <div className="surface relative overflow-hidden p-6 xl:col-span-2">
       <div className="mb-5 flex items-end justify-between">
@@ -242,76 +243,82 @@ function PostureChart() {
         </div>
       </div>
       <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={postureSeries} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gBroken" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--shor)" stopOpacity={0.55} />
-                <stop offset="100%" stopColor="var(--shor)" stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="gWeak" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--grover)" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="var(--grover)" stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="gSafe" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--pqc)" stopOpacity={0.55} />
-                <stop offset="100%" stopColor="var(--pqc)" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="var(--border)" vertical={false} />
-            <XAxis
-              dataKey="week"
-              tick={{
-                fill: "var(--muted-foreground)",
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-              }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{
-                fill: "var(--muted-foreground)",
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-              }}
-              axisLine={false}
-              tickLine={false}
-              width={40}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "var(--popover)",
-                border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-card)",
-                borderRadius: 10,
-                fontSize: 12,
-              }}
-              labelStyle={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}
-            />
-            <Area
-              type="monotone"
-              dataKey="broken"
-              stroke="var(--shor)"
-              strokeWidth={2}
-              fill="url(#gBroken)"
-            />
-            <Area
-              type="monotone"
-              dataKey="weakened"
-              stroke="var(--grover)"
-              strokeWidth={2}
-              fill="url(#gWeak)"
-            />
-            <Area
-              type="monotone"
-              dataKey="safe"
-              stroke="var(--pqc)"
-              strokeWidth={2}
-              fill="url(#gSafe)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-center font-mono text-xs text-muted-foreground">
+            No history yet — run scans over time and the red→green trend appears here.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gBroken" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--shor)" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="var(--shor)" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="gWeak" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--grover)" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="var(--grover)" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="gSafe" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--pqc)" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="var(--pqc)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--border)" vertical={false} />
+              <XAxis
+                dataKey="week"
+                tick={{
+                  fill: "var(--muted-foreground)",
+                  fontSize: 11,
+                  fontFamily: "var(--font-mono)",
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{
+                  fill: "var(--muted-foreground)",
+                  fontSize: 11,
+                  fontFamily: "var(--font-mono)",
+                }}
+                axisLine={false}
+                tickLine={false}
+                width={40}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--popover)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-card)",
+                  borderRadius: 10,
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: "var(--foreground)", fontFamily: "var(--font-mono)" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="broken"
+                stroke="var(--shor)"
+                strokeWidth={2}
+                fill="url(#gBroken)"
+              />
+              <Area
+                type="monotone"
+                dataKey="weakened"
+                stroke="var(--grover)"
+                strokeWidth={2}
+                fill="url(#gWeak)"
+              />
+              <Area
+                type="monotone"
+                dataKey="safe"
+                stroke="var(--pqc)"
+                strokeWidth={2}
+                fill="url(#gSafe)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
@@ -326,7 +333,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-function MigrationBoard() {
+function MigrationBoard({ totals }: { totals: DashboardView["totals"] }) {
   const cols = [
     { key: "broken" as const, label: "Broken", count: totals.broken, accent: "shor" },
     { key: "weakened" as const, label: "Weakened", count: totals.weakened, accent: "grover" },
@@ -342,7 +349,7 @@ function MigrationBoard() {
       </div>
       <div className="space-y-4">
         {cols.map((c) => {
-          const pct = Math.round((c.count / totals.total) * 100);
+          const pct = totals.total ? Math.round((c.count / totals.total) * 100) : 0;
           return (
             <div key={c.key}>
               <div className="mb-1.5 flex items-center justify-between text-xs">
@@ -364,19 +371,16 @@ function MigrationBoard() {
         })}
       </div>
       <div className="mt-6 rounded-lg border border-border bg-muted/60 p-4 text-xs leading-relaxed text-muted-foreground">
-        <span className="text-foreground">21 assets</span> moved into{" "}
-        <span className="text-pqc">safe</span> in the last 7 days, mostly TLS edges flipped to{" "}
-        <span className="font-mono text-foreground">X25519MLKEM768</span>.
+        <span className="text-foreground">{totals.safe} assets</span> are quantum-safe of{" "}
+        <span className="font-mono text-foreground">{totals.total}</span> total. Migrate{" "}
+        <span className="text-shor">broken</span> cohorts to hybrid PQC (e.g.{" "}
+        <span className="font-mono text-foreground">X25519MLKEM768</span>).
       </div>
     </div>
   );
 }
 
-function TopFindings() {
-  const top = [...assets]
-    .filter((a) => a.status !== "safe")
-    .sort((a, b) => b.hndlRisk - a.hndlRisk)
-    .slice(0, 6);
+function TopFindings({ items }: { items: TopFinding[] }) {
   return (
     <div className="surface overflow-hidden lg:col-span-3">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -394,7 +398,12 @@ function TopFindings() {
         </Link>
       </div>
       <div className="divide-y divide-border">
-        {top.map((a) => (
+        {items.length === 0 && (
+          <div className="px-6 py-8 text-center font-mono text-xs text-muted-foreground">
+            No findings yet — run a scan to populate your inventory.
+          </div>
+        )}
+        {items.map((a) => (
           <Link
             key={a.id}
             to="/app/assets/$assetId"
@@ -439,7 +448,7 @@ function TopFindings() {
   );
 }
 
-function RecentScans() {
+function RecentScans({ scans }: { scans: DashboardView["recentScans"] }) {
   return (
     <div className="surface overflow-hidden lg:col-span-2">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -457,7 +466,12 @@ function RecentScans() {
         </Link>
       </div>
       <ul className="divide-y divide-border">
-        {recentScans.map((s) => (
+        {scans.length === 0 && (
+          <li className="px-6 py-8 text-center font-mono text-xs text-muted-foreground">
+            No scans yet.
+          </li>
+        )}
+        {scans.map((s) => (
           <li key={s.id} className="flex items-center gap-3 px-6 py-3.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
               {s.kind === "domain" ? (
