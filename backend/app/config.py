@@ -11,6 +11,15 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",")]
 
+# Supabase auth (multi-tenancy). The frontend signs in with Supabase; the backend
+# only VERIFIES the user's access token against the project's *public* JWKS — no
+# Supabase secret lives here. The token's `sub` resolves to a per-user org.
+# Default = the live project the deployed frontend authenticates against (dqdmp…).
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL", "https://dqdmpmymzwravdjwmtxi.supabase.co"
+).rstrip("/")
+SUPABASE_JWT_AUD = os.environ.get("SUPABASE_JWT_AUD", "authenticated")
+
 # Triage LLM provider seam. One model, chosen by config — never hard-wired.
 #   LLM_PROVIDER=ollama  -> local dev / on-prem (free, runs on the dev machine)
 #   LLM_PROVIDER=groq    -> prod (hosted, OpenAI-compatible; enable ZDR on the account)

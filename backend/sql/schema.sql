@@ -12,13 +12,17 @@ CREATE TABLE IF NOT EXISTS org (
 -- idempotent for already-created DBs
 ALTER TABLE IF EXISTS org ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
 
--- Minimal user table for the demo sign-up/login (Alan's button hits this).
+-- User table: maps a Supabase-authenticated identity to its org (multi-tenancy).
+-- `supabase_uid` (JWT `sub`) is the stable identity; email is informational.
 CREATE TABLE IF NOT EXISTS app_user (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id       UUID NOT NULL REFERENCES org(id) ON DELETE CASCADE,
     email        TEXT UNIQUE NOT NULL,
+    supabase_uid TEXT UNIQUE,                  -- Supabase JWT `sub`
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- idempotent for already-created DBs
+ALTER TABLE IF EXISTS app_user ADD COLUMN IF NOT EXISTS supabase_uid TEXT UNIQUE;
 
 CREATE TABLE IF NOT EXISTS scan (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

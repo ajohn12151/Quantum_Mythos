@@ -15,11 +15,12 @@ from contextlib import asynccontextmanager
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import db, dto
+from .auth import get_current_org
 from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
@@ -53,9 +54,9 @@ app.add_middleware(
 
 # ---------- request models ----------
 class ScanRequest(BaseModel):
-    org_id: UUID | None = None          # if omitted, the demo org is used/created
-    mode: str = "black_box"             # 'black_box' | 'white_box'
-    target: str                         # domain (black-box) or repo URL (white-box)
+    mode: str = "black_box"             # 'black_box' | 'white_box' | 'binary'
+    target: str                         # domain (black-box), repo URL (white-box), path/image (binary)
+    # org is resolved from the caller's auth token (get_current_org), not the body.
 
 
 class RemediateRequest(BaseModel):
@@ -68,13 +69,9 @@ class PrRequest(BaseModel):
 
 
 # ---------- helpers ----------
-async def _demo_org() -> UUID:
-    """For the demo: get-or-create a single org so the flow works without auth."""
-    con = db.pool()
-    row = await con.fetchrow("SELECT id FROM org ORDER BY created_at LIMIT 1")
-    if row:
-        return row["id"]
-    return await con.fetchval("INSERT INTO org(name) VALUES('Demo Org') RETURNING id")
+# Org resolution lives in app/auth.py: `get_current_org` (request dependency)
+# verifies the Supabase JWT -> per-user org, or falls back to the shared
+# `demo_org` for the no-login walkthrough.
 
 
 async def _snapshot_posture(con, org_id, scan_id) -> None:
@@ -285,9 +282,10 @@ async def health():
 
 
 @app.post("/api/scans")
-async def create_scan(req: ScanRequest, bg: BackgroundTasks):
+async def create_scan(
+    req: ScanRequest, bg: BackgroundTasks, org_id: UUID = Depends(get_current_org)
+):
     con = db.pool()
-    org_id = req.org_id or await _demo_org()
     scan_id = await con.fetchval(
         "INSERT INTO scan(org_id, mode, target) VALUES($1,$2,$3) RETURNING id",
         org_id, req.mode, req.target,
@@ -362,11 +360,10 @@ async def get_asset(asset_id: UUID):
 
 
 @app.get("/api/dashboard")
-async def dashboard_current():
-    """Dashboard for the current org. No org in the URL — resolved server-side
-    (demo org now; from the authed session once auth lands). Slice-1 frontend
-    calls this directly."""
-    org_id = await _demo_org()
+async def dashboard_current(org_id: UUID = Depends(get_current_org)):
+    """Dashboard for the current org. No org in the URL — it's resolved from the
+    caller's Supabase token, or the shared demo org when there's no token (so the
+    no-login walkthrough still works). The frontend calls this directly."""
     return await _dashboard_payload(db.pool(), org_id)
 
 
