@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { AegisLogo } from "@/components/AegisLogo";
 import { Reveal } from "@/components/marketing/Reveal";
 import { MotionConfig } from "framer-motion";
@@ -59,12 +58,12 @@ function SignupPage() {
   };
 
   const onGoogle = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    // Native Supabase Google OAuth: redirects to Google, returns to redirectTo.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/app" },
     });
-    if (result.error) return toast.error(result.error.message ?? "Google sign-in failed.");
-    if (result.redirected) return;
-    navigate({ to: "/app" });
+    if (error) toast.error(error.message ?? "Google sign-in failed.");
   };
 
   if (sentTo) return <CheckEmailNotice email={sentTo} />;
