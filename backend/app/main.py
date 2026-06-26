@@ -361,10 +361,22 @@ async def get_asset(asset_id: UUID):
     return dict(row)
 
 
+@app.get("/api/dashboard")
+async def dashboard_current():
+    """Dashboard for the current org. No org in the URL — resolved server-side
+    (demo org now; from the authed session once auth lands). Slice-1 frontend
+    calls this directly."""
+    org_id = await _demo_org()
+    return await _dashboard_payload(db.pool(), org_id)
+
+
 @app.get("/api/orgs/{org_id}/dashboard")
 async def dashboard(org_id: UUID):
+    return await _dashboard_payload(db.pool(), org_id)
+
+
+async def _dashboard_payload(con, org_id) -> dict:
     """BFF: the full payload the frontend dashboard renders, in its DTO shape."""
-    con = db.pool()
     by_cat = {r["category"]: r["count"] for r in await con.fetch(
         "SELECT category, count(*) FROM crypto_asset WHERE org_id=$1 GROUP BY category", org_id)}
     broken = by_cat.get("shor_broken", 0)
@@ -395,6 +407,7 @@ async def dashboard(org_id: UUID):
         "SELECT * FROM scan WHERE org_id=$1 ORDER BY started_at DESC LIMIT 8", org_id)
 
     return {
+        "orgId": str(org_id),
         "totals": {"broken": broken, "weakened": weakened, "safe": safe,
                    "total": total, "hndlExposed": hndl_exposed},
         "riskScore": dto.risk_score(broken, weakened, total),
