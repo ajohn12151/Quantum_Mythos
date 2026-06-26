@@ -14,7 +14,7 @@ export function MarketingFooter() {
             </p>
           </div>
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Product
             </div>
             <ul className="mt-4 space-y-2.5 text-sm">
@@ -36,17 +36,16 @@ export function MarketingFooter() {
               </li>
               <li>
                 <Link
-                  to="/signup"
-                  search={{ domain: undefined }}
+                  to="/newsletter"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Start free scan
+                  Reading list
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Company
             </div>
             <ul className="mt-4 space-y-2.5 text-sm">

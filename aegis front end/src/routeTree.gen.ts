@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -34,6 +35,11 @@ const SignupRoute = SignupRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsletterRoute = NewsletterRouteImport.update({
+  id: '/newsletter',
+  path: '/newsletter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
+  '/newsletter': typeof NewsletterRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
+  '/newsletter': typeof NewsletterRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/app/assets': typeof AuthenticatedAppAssetsRouteWithChildren
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
+  '/newsletter': typeof NewsletterRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/'
     | '/how-it-works'
     | '/login'
+    | '/newsletter'
     | '/pricing'
     | '/signup'
     | '/app'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/'
     | '/how-it-works'
     | '/login'
+    | '/newsletter'
     | '/pricing'
     | '/signup'
     | '/app/assets'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/how-it-works'
     | '/login'
+    | '/newsletter'
     | '/pricing'
     | '/signup'
     | '/_authenticated/app'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
+  NewsletterRoute: typeof NewsletterRoute
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
 }
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/newsletter': {
+      id: '/newsletter'
+      path: '/newsletter'
+      fullPath: '/newsletter'
+      preLoaderRoute: typeof NewsletterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
+  NewsletterRoute: NewsletterRoute,
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
 }

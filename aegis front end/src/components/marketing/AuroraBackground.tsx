@@ -1,8 +1,9 @@
 /**
- * AuroraBackground 2.0 — a dramatic, living frosted aurora: a slowly-rotating
- * conic "mesh" layer plus bigger/brighter drifting blobs (decorative bright
- * blues). Pointer-events-none, colors from CSS vars, and `prefers-reduced-motion`
- * safe — the global reduced-motion rule freezes all `motion-safe:animate-*`.
+ * AuroraBackground — a living frosted aurora in ONE consistent blue
+ * (`--blue-electric`): a slowly-rotating single-hue conic "mesh" plus drifting
+ * blobs of the same blue. The color stays uniform across the whole animation —
+ * only intensity/position move, never the hue. Pointer-events-none, and
+ * `prefers-reduced-motion` safe (the global rule freezes all `motion-safe:*`).
  */
 export function AuroraBackground({
   className = "",
@@ -17,13 +18,13 @@ export function AuroraBackground({
       aria-hidden
       className={`pointer-events-none absolute inset-0 -z-10 overflow-hidden ${className}`}
     >
-      {/* Rotating conic "living mesh" — two layers at different speeds/directions
-          for a richer morph (the brighter is hero-weighted). */}
+      {/* Rotating conic mesh — single hue: blue/transparent wedges of the SAME
+          blue, so rotating it never shifts color, only intensity. */}
       <div
         className="motion-safe:animate-conic-spin absolute left-1/2 top-1/2 h-[160%] w-[160%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[90px]"
         style={{
           background:
-            "conic-gradient(from 0deg, transparent, var(--blue-electric), transparent 22%, var(--quantum-cyan), transparent 50%, var(--quantum-violet), transparent 76%, var(--blue-bright), transparent)",
+            "conic-gradient(from 0deg, transparent, var(--blue-electric) 14%, transparent 28%, transparent 50%, var(--blue-electric) 64%, transparent 78%, transparent)",
           opacity: 0.34 * o,
           animationDuration: "26s",
         }}
@@ -32,13 +33,13 @@ export function AuroraBackground({
         className="motion-safe:animate-conic-spin absolute left-1/2 top-1/2 h-[140%] w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]"
         style={{
           background:
-            "conic-gradient(from 140deg, transparent, var(--quantum-cyan), transparent 33%, var(--blue-bright), transparent 66%, var(--blue-electric), transparent)",
+            "conic-gradient(from 140deg, transparent, var(--blue-electric) 18%, transparent 40%, transparent 70%, var(--blue-electric) 86%, transparent)",
           opacity: 0.21 * o,
           animationDirection: "reverse",
           animationDuration: "38s",
         }}
       />
-      {/* Drifting blobs */}
+      {/* Drifting blobs — all the same blue */}
       <div
         className="motion-safe:animate-aurora absolute -left-[12%] -top-[24%] h-[50rem] w-[50rem] rounded-full blur-[120px]"
         style={{
@@ -50,8 +51,8 @@ export function AuroraBackground({
       <div
         className="motion-safe:animate-aurora absolute -top-[14%] right-[-12%] h-[44rem] w-[44rem] rounded-full blur-[130px]"
         style={{
-          background: "radial-gradient(circle, var(--blue-bright) 0%, transparent 62%)",
-          opacity: 0.66 * o,
+          background: "radial-gradient(circle, var(--blue-electric) 0%, transparent 62%)",
+          opacity: 0.62 * o,
           animationDelay: "-7s",
           animationDuration: "18s",
         }}
@@ -59,8 +60,8 @@ export function AuroraBackground({
       <div
         className="motion-safe:animate-aurora absolute bottom-[-30%] left-[26%] h-[46rem] w-[46rem] rounded-full blur-[140px]"
         style={{
-          background: "radial-gradient(circle, var(--quantum-violet) 0%, transparent 68%)",
-          opacity: 0.52 * o,
+          background: "radial-gradient(circle, var(--blue-electric) 0%, transparent 68%)",
+          opacity: 0.5 * o,
           animationDelay: "-14s",
           animationDuration: "22s",
         }}

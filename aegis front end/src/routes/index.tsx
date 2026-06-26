@@ -39,6 +39,7 @@ import { AppWindow } from "@/components/marketing/AppWindow";
 import { Marquee } from "@/components/marketing/Marquee";
 import { Reveal, Stagger, StaggerItem } from "@/components/marketing/Reveal";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
+import { ContactForm } from "@/components/marketing/ContactForm";
 import { useCountUp } from "@/hooks/use-count-up";
 import { useStartDemo } from "@/lib/demo-auth";
 import {
@@ -89,7 +90,6 @@ function HomePage() {
         <Hero />
         <Stats />
         <Threat />
-        <Loop />
         <Tiers />
         <BentoFeatures />
         <Differentiator />
@@ -137,7 +137,6 @@ const heroItem = {
 };
 
 function Hero() {
-  const [domain, setDomain] = useState("");
   const startDemo = useStartDemo();
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -181,52 +180,28 @@ function Hero() {
               helps you migrate — starting with a single domain, no integration required.
             </motion.p>
 
-            <motion.form
-              variants={heroItem}
-              onSubmit={(e) => {
-                e.preventDefault();
-                window.location.href = `/signup?domain=${encodeURIComponent(domain)}`;
-              }}
-              className="mt-9 flex max-w-lg flex-col gap-3 sm:flex-row"
-            >
-              <div className="relative flex-1">
-                <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  placeholder="yourdomain.com"
-                  className="h-12 w-full rounded-md border border-border bg-card pl-10 pr-3 font-mono text-sm text-foreground shadow-[var(--shadow-xs)] transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label="Domain to scan"
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90"
-              >
-                Run a free external scan
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </motion.form>
             <motion.div
               variants={heroItem}
-              className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+              className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center"
             >
               <button
                 type="button"
                 onClick={startDemo}
-                className="group inline-flex items-center gap-1.5 font-medium text-primary transition-colors hover:text-primary/80"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90"
               >
-                <Play className="h-3.5 w-3.5" /> Explore the live demo
-                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                <Play className="h-4 w-4" /> Explore the live demo
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
               <Link
                 to="/how-it-works"
-                className="inline-flex items-center gap-1 font-medium text-foreground transition-colors hover:text-primary"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-border bg-card/70 px-5 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-accent/60"
               >
-                See how it works <ArrowRight className="h-3 w-3" />
+                See how it works
               </Link>
-              <span className="font-mono">No integration · results in ~10s</span>
             </motion.div>
+            <motion.p variants={heroItem} className="mt-4 text-xs text-muted-foreground">
+              Live in your browser · no signup, no integration.
+            </motion.p>
           </motion.div>
 
           {/* Layered, parallaxed product windows */}
@@ -389,21 +364,22 @@ function FindingRow({
 /* --------------------------------- Threat -------------------------------- */
 
 function Threat() {
+  const reduce = useReducedMotion();
   const cards = [
     {
       icon: Lock,
-      title: "Shor breaks asymmetric crypto",
-      body: "RSA, ECDSA, ECDH, EdDSA — the math under every TLS handshake, SSH key, and code-signing certificate.",
+      title: "Shor's algorithm breaks all public-key crypto",
+      body: "RSA, ECDSA, ECDH, Diffie–Hellman — the math under every TLS handshake, SSH key, VPN, and code-signing certificate. A quantum computer doesn't weaken it; it breaks it outright.",
     },
     {
       icon: Clock,
       title: "Harvest now, decrypt later",
-      body: "Adversaries record encrypted traffic today and decrypt it once a quantum computer exists. Long-secrecy data is already at risk.",
+      body: "Adversaries are recording your encrypted traffic today to decrypt the moment the hardware exists. Anything with a long secrecy lifetime — health, finance, IP, credentials — is already exposed.",
     },
     {
       icon: Activity,
-      title: "It announces itself",
-      body: "Cryptography is broadcast in every handshake. Aegis measures your exposure from the outside, in seconds, with zero integration.",
+      title: "Your crypto is broadcast on the wire",
+      body: "Every handshake advertises its key type and size. Aegis reads that exposure the way an attacker would — from the outside, no agent, no code, no permission — in seconds.",
     },
   ];
   return (
@@ -416,14 +392,26 @@ function Threat() {
           </h2>
         </Reveal>
         <Stagger className="mt-14 grid gap-5 md:grid-cols-3">
-          {cards.map((c) => (
+          {cards.map((c, i) => (
             <StaggerItem key={c.title}>
               <SpotlightCard className="h-full rounded-xl p-7">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-quantum-soft text-quantum-violet">
-                  <c.icon className="h-5 w-5" />
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-quantum-soft text-quantum-violet">
+                    <c.icon className="h-5 w-5" />
+                  </div>
+                  <span className="font-display text-3xl font-semibold tabular-nums text-primary/25">
+                    0{i + 1}
+                  </span>
                 </div>
                 <h3 className="mt-6 text-lg font-semibold tracking-tight">{c.title}</h3>
-                <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
+                <motion.div
+                  className="mt-2.5 h-0.5 rounded-full bg-gradient-to-r from-primary to-transparent"
+                  initial={reduce ? { width: "2.25rem" } : { width: 0 }}
+                  whileInView={{ width: "2.25rem" }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.7, ease: [0.2, 0.7, 0.2, 1], delay: 0.1 * i }}
+                />
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
               </SpotlightCard>
             </StaggerItem>
           ))}
@@ -445,251 +433,6 @@ function Threat() {
   );
 }
 
-/* ----------------------------- The 4-step loop --------------------------- */
-
-const LOOP_STEPS = [
-  {
-    icon: Search,
-    title: "Discover",
-    body: "Externally, then in source. TLS, SSH, mail, CT logs, and code.",
-  },
-  {
-    icon: ListChecks,
-    title: "Prioritize",
-    body: "Rank by reachability × secrecy lifetime × time-to-break.",
-  },
-  {
-    icon: GitPullRequest,
-    title: "Remediate",
-    body: "Open safely-bounded migration pull requests.",
-  },
-  { icon: ShieldCheck, title: "Verify", body: "Re-scan. Watch red flip to green. Audit-ready." },
-];
-
-function Loop() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const [active, setActive] = useState(0);
-  useMotionValueEvent(scrollYProgress, "change", (p) => {
-    const i = Math.min(LOOP_STEPS.length - 1, Math.max(0, Math.floor(p * LOOP_STEPS.length)));
-    setActive(i);
-  });
-
-  return (
-    <section ref={ref} className="relative border-t border-border" style={{ height: "320vh" }}>
-      <div className="sticky top-0 flex min-h-screen items-center overflow-hidden py-24">
-        <div className="mx-auto w-full max-w-7xl px-6">
-          <Reveal>
-            <SectionEyebrow>How it works</SectionEyebrow>
-            <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold leading-[1.12] tracking-tight md:text-4xl">
-              A closed loop, not a one-shot report.
-            </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Crypto debt accrues continuously — so Aegis does too. Scroll the loop.
-            </p>
-          </Reveal>
-
-          <div className="mt-12 grid items-center gap-10 lg:grid-cols-2">
-            <ol className="relative space-y-3">
-              {/* Animated beam rail flowing through the step nodes */}
-              <div className="pointer-events-none absolute bottom-7 left-[2.6rem] top-7 w-0.5 -translate-x-1/2">
-                <div className="absolute inset-0 rounded-full bg-border" />
-                <div
-                  className="animate-beam-glow absolute inset-x-0 top-0 rounded-full bg-gradient-to-b from-[var(--blue-electric)] to-[var(--quantum-cyan)] shadow-[0_0_18px_3px_var(--blue-electric)] transition-[height] duration-500 ease-out"
-                  style={{ height: `${(active / (LOOP_STEPS.length - 1)) * 100}%` }}
-                />
-                <div className="absolute inset-0 overflow-hidden rounded-full">
-                  <div
-                    className="animate-beam-travel absolute inset-x-0 h-16"
-                    style={{
-                      background:
-                        "linear-gradient(to bottom, transparent, var(--blue-electric), transparent)",
-                    }}
-                  />
-                </div>
-              </div>
-              {LOOP_STEPS.map((s, i) => {
-                const on = i === active;
-                return (
-                  <li key={s.title}>
-                    <div
-                      className={`relative flex gap-4 rounded-xl border p-5 transition-all duration-300 ${
-                        on
-                          ? "glass border-primary/40 shadow-[var(--shadow-card)]"
-                          : "border-transparent opacity-45"
-                      }`}
-                    >
-                      <div
-                        className={`relative z-10 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
-                          on
-                            ? "bg-primary text-primary-foreground shadow-glow"
-                            : "bg-secondary text-primary"
-                        }`}
-                      >
-                        <s.icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold tabular-nums text-muted-foreground/60">
-                            0{i + 1}
-                          </span>
-                          <h3 className="text-lg font-semibold tracking-tight">{s.title}</h3>
-                        </div>
-                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                          {s.body}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-
-            <div className="relative lg:pl-4">
-              <AppWindow
-                title={`aegis · ${LOOP_STEPS[active].title.toLowerCase()}`}
-                live={active === 0}
-              >
-                <div className="min-h-[280px]">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={active}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.35, ease: [0.2, 0.7, 0.2, 1] }}
-                    >
-                      <LoopMedia step={active} />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </AppWindow>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LoopMedia({ step }: { step: number }) {
-  if (step === 0) {
-    return (
-      <div className="space-y-1.5 p-5 font-mono text-[12.5px] leading-relaxed">
-        <div className="text-muted-foreground">$ aegis scan acme.com --ct --tls</div>
-        <div className="text-foreground/80">→ 412 subdomains via CT logs</div>
-        <div className="text-foreground/80">→ probing TLS · SSH · STARTTLS …</div>
-        <div className="mt-3 space-y-2">
-          <FindingRow
-            host="checkout.acme.com"
-            algo="ECDSA P-256"
-            status="shor"
-            label="Shor-broken"
-          />
-          <FindingRow host="vault.acme.com" algo="RSA-4096" status="shor" label="Shor-broken" />
-        </div>
-      </div>
-    );
-  }
-  if (step === 1) {
-    const rows = [
-      { host: "legacy-sso.acme.com", score: 98, sev: "shor" as const },
-      { host: "checkout.acme.com", score: 91, sev: "shor" as const },
-      { host: "otel.acme.internal", score: 44, sev: "grover" as const },
-    ];
-    return (
-      <div className="space-y-2.5 p-5">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Ranked by reachability × lifetime × time-to-break
-        </div>
-        {rows.map((r, i) => (
-          <div key={r.host} className="flex items-center gap-3">
-            <span className="font-mono text-sm font-semibold tabular-nums text-muted-foreground/60">
-              0{i + 1}
-            </span>
-            <span className="flex-1 truncate font-mono text-[12.5px]">{r.host}</span>
-            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-elevated-2">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${r.score}%`,
-                  background: r.sev === "shor" ? "var(--shor)" : "var(--grover)",
-                }}
-              />
-            </div>
-            <span className="w-7 text-right font-mono text-xs tabular-nums">{r.score}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (step === 2) {
-    return (
-      <div className="p-5 font-mono text-[12px] leading-relaxed">
-        <div className="mb-3 flex items-center gap-2 text-muted-foreground">
-          <GitPullRequest className="h-3.5 w-3.5 text-primary" />
-          PR #1284 · crypto-agility: jwt signing
-        </div>
-        <div className="space-y-0.5 rounded-md border border-border bg-elevated-2/60 p-3">
-          <div className="text-shor">- signer := ecdsa.New(P256, key)</div>
-          <div className="text-pqc">+ signer := pqc.Hybrid(ML_DSA_65, ecdsaKey)</div>
-          <div className="mt-2 text-muted-foreground">✓ differential test · round-trip ok</div>
-          <div className="text-muted-foreground">✓ size assertion · 3309 B within budget</div>
-        </div>
-        <div className="mt-3 text-pqc">awaiting human review →</div>
-      </div>
-    );
-  }
-  return <VerifyBars />;
-}
-
-function VerifyBars() {
-  const reduce = useReducedMotion();
-  const [fixed, setFixed] = useState(false);
-  useEffect(() => {
-    if (reduce) {
-      setFixed(true);
-      return;
-    }
-    const id = setTimeout(() => setFixed(true), 350);
-    return () => clearTimeout(id);
-  }, [reduce]);
-  const rows = ["legacy-sso.acme.com", "checkout.acme.com", "api.acme.com", "vault.acme.com"];
-  return (
-    <div className="space-y-3 p-5">
-      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-        <span>Re-scan after migration</span>
-        <span className="tabular-nums">
-          broken <span className={fixed ? "text-pqc" : "text-shor"}>{fixed ? "0" : "27"}</span> / 27
-        </span>
-      </div>
-      {rows.map((host, i) => (
-        <div key={host} className="flex items-center gap-3">
-          <span className="flex-1 truncate font-mono text-[12.5px]">{host}</span>
-          <div className="h-1.5 w-28 overflow-hidden rounded-full bg-elevated-2">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: fixed ? "100%" : "82%",
-                background: fixed ? "var(--pqc)" : "var(--shor)",
-                transitionDelay: `${i * 90}ms`,
-              }}
-            />
-          </div>
-          <span
-            className={`w-16 text-right font-mono text-[10px] uppercase tracking-wider transition-colors duration-500 ${
-              fixed ? "text-pqc" : "text-shor"
-            }`}
-            style={{ transitionDelay: `${i * 90}ms` }}
-          >
-            {fixed ? "PQC" : "broken"}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* --------------------------------- Tiers --------------------------------- */
 
 function Tiers() {
@@ -707,7 +450,7 @@ function Tiers() {
           <StaggerItem>
             <TierCard
               icon={Globe}
-              tag="Live in 10 seconds"
+              tag="Live in seconds"
               title="Black-box"
               sub="Perimeter · zero integration"
               body="Point it at a domain. Aegis inspects TLS, SSH, and mail certificates, enumerates Certificate Transparency logs to surface forgotten subdomains, flags everything quantum will break, and catches endpoints with no forward secrecy — in seconds."
@@ -724,7 +467,7 @@ function Tiers() {
               tag="The reasoning engine"
               title="White-box"
               sub="Repo access · enterprise depth"
-              body="Connect a repository. Aegis finds quantum-vulnerable crypto and classical misuse — hardcoded keys, reused nonces, weak RNG — reasons about which findings actually matter, and opens safely-bounded migration pull requests."
+              body="Connect a repository. Aegis finds quantum-vulnerable crypto and classical misuse — hardcoded keys, reused nonces, weak RNG — reasons about which findings actually matter, and proposes review-gated migration pull requests you approve."
               bullets={[
                 "Source + dependency CBOM (CycloneDX)",
                 "Reachability + business-risk reasoning",
@@ -766,7 +509,7 @@ function TierCard({
         <div className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-quantum-soft text-quantum-violet">
           <Icon className="h-5 w-5" />
         </div>
-        <span className="rounded-full border border-border bg-elevated-2 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+        <span className="rounded-full border border-border bg-elevated-2 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
           {tag}
         </span>
       </div>
@@ -846,7 +589,7 @@ function Differentiator() {
         </Reveal>
 
         <Reveal className="surface mt-12 overflow-hidden" delay={0.05}>
-          <div className="grid grid-cols-[1.6fr_1.2fr_0.8fr_0.7fr_0.9fr_0.7fr] gap-4 border-b border-border bg-elevated-2 px-5 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-[1.6fr_1.2fr_0.8fr_0.7fr_0.9fr_0.7fr] gap-4 border-b border-border bg-elevated-2 px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             <div>Asset</div>
             <div>Crypto</div>
             <div>Reach</div>
@@ -968,7 +711,7 @@ function Compliance() {
           {chips.map((c) => (
             <span
               key={c}
-              className="glass inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 font-mono text-xs text-foreground/85"
+              className="glass inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium text-foreground/85"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
               {c}
@@ -1013,68 +756,80 @@ function Safety() {
 /* --------------------------------- Final CTA ----------------------------- */
 
 function FinalCTA() {
-  const [domain, setDomain] = useState("");
+  const startDemo = useStartDemo();
   return (
     <section className="relative isolate overflow-hidden border-t border-border py-28">
       <AuroraBackground />
-      <Reveal className="mx-auto max-w-5xl px-6 text-center">
-        <h2 className="mx-auto max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-5xl">
-          Find out what quantum will break in your stack.
-        </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            window.location.href = `/signup?domain=${encodeURIComponent(domain)}`;
-          }}
-          className="mx-auto mt-10 flex max-w-xl flex-col gap-3 sm:flex-row"
-        >
-          <input
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            placeholder="yourdomain.com"
-            className="h-12 flex-1 rounded-md border border-border bg-card px-4 font-mono text-sm shadow-[var(--shadow-xs)] transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Domain to scan"
-          />
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
+        <Reveal>
+          <h2 className="max-w-md text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-5xl">
+            See your quantum exposure for yourself.
+          </h2>
+          <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
+            Click through the full product on live demo data — every screen, no signup. Or tell us
+            about your stack and we'll take it from there.
+          </p>
           <button
-            type="submit"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90"
+            type="button"
+            onClick={startDemo}
+            className="group mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90"
           >
-            Run free scan <ArrowRight className="h-4 w-4" />
+            <Play className="h-4 w-4" /> Explore the live demo
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
-        </form>
-        <div className="mt-5">
-          <a
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            href="#"
-          >
-            or talk to us →
-          </a>
-        </div>
-      </Reveal>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <ContactForm />
+        </Reveal>
+      </div>
     </section>
   );
 }
 
 /* --------------------------------- Stats --------------------------------- */
 
+// Real, sourced figures — not illustrative placeholders. Sources in comments.
+const STATS: { to?: number; suffix?: string; static?: string; label: string }[] = [
+  // NIST IR 8547: RSA/ECDSA/ECDH/DH deprecated after 2030, DISALLOWED after 2035 (federal).
+  { to: 2035, label: "the year NIST disallows RSA & ECDSA in federal systems (IR 8547)" },
+  // Egele et al. found 88% of Android apps using crypto misuse it; broader studies report 85–99%.
+  {
+    to: 88,
+    suffix: "%",
+    label: "of apps that use cryptography misuse it — real, fixable bugs almost everywhere",
+  },
+  // FIPS 203/204: ML-DSA-65 signature 3,309 B vs ECDSA P-256 ~64 B (~50×); ML-KEM-768 key 1,184 B.
+  {
+    static: "4–50×",
+    label:
+      "larger post-quantum keys & signatures — why migration silently breaks TLS, DNSSEC & PKI",
+  },
+  // No cryptographically-relevant quantum computer exists today; credible estimates land in the 2030s.
+  {
+    to: 0,
+    label:
+      "quantum computers can break RSA today — which is exactly why the time to migrate is now",
+  },
+];
+
 function Stats() {
-  const stats = [
-    { to: 47, suffix: "", label: "shadow subdomains a first scan typically surfaces", mono: true },
-    { to: 10, suffix: "s", label: "to a full external posture report", mono: false },
-    { to: 100, suffix: "%", label: "of asymmetric crypto Shor breaks outright", mono: false },
-    { to: 2030, suffix: "", label: "NIST deadline for high-risk systems", mono: true },
-  ];
   return (
     <section className="relative border-t border-border py-16">
       <div className="mx-auto max-w-7xl px-6">
         <Stagger className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-          {stats.map((s) => (
+          {STATS.map((s) => (
             <StaggerItem key={s.label} className="text-center lg:text-left">
               <div className="font-display text-4xl font-semibold tracking-tight tabular-nums text-foreground md:text-5xl">
-                <CountUpOnView to={s.to} className="" />
-                {s.suffix && <span className="text-gradient">{s.suffix}</span>}
+                {s.static ? (
+                  <span>{s.static}</span>
+                ) : (
+                  <>
+                    <CountUpOnView to={s.to ?? 0} />
+                    {s.suffix && <span className="text-gradient">{s.suffix}</span>}
+                  </>
+                )}
               </div>
-              <div className="mx-auto mt-3 max-w-[15rem] text-sm leading-snug text-muted-foreground lg:mx-0">
+              <div className="mx-auto mt-3 max-w-[16rem] text-sm leading-snug text-muted-foreground lg:mx-0">
                 {s.label}
               </div>
             </StaggerItem>
@@ -1102,11 +857,15 @@ const FAQS = [
   },
   {
     q: "Isn't this just another cryptographic inventory?",
-    a: "Inventory is table stakes. Aegis's product is the reasoning: it ranks every finding by reachability × data-confidentiality-lifetime × quantum time-to-break, so you fix what actually matters first — then opens safely-bounded migration PRs and verifies the fix.",
+    a: "Inventory is table stakes. Aegis's product is the reasoning: it ranks every finding by reachability × data-confidentiality-lifetime × quantum time-to-break, so you fix what actually matters first — then proposes review-gated migration PRs and verifies the fix.",
+  },
+  {
+    q: "How is this different from a general AI coding agent on my repo?",
+    a: "A general agent can read your code. What it can't do is model when RSA-2048 becomes a liability, reason about which data flows through a cipher and how long it must stay secret, or act as a continuous system-of-record that proves migration progress to an auditor. Prioritizing your migration by what an adversary is recording today to break in the 2030s isn't a code-reading problem — it's a threat-horizon and data-governance one.",
   },
   {
     q: "Do you let an AI rewrite my cryptography?",
-    a: "Never. Migration PRs only swap call-sites to verified post-quantum libraries. The AI does the agility refactor; the primitive comes from a vetted library, and every PR is gated by an automatic differential test and human review.",
+    a: "Never. A migration is always a pull request you review. Aegis only swaps the call-site to a verified post-quantum library — it never authors or alters a cryptographic primitive — and every PR is gated by an automatic differential test plus human approval.",
   },
 ];
 
@@ -1144,7 +903,7 @@ function FAQ() {
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-primary">
+    <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
       <span className="h-px w-6 bg-primary/40" />
       {children}
     </div>
