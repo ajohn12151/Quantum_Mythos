@@ -21,6 +21,7 @@ This tracks concrete done/remaining.
 - **Explored every screen**, mapped each to the backend (what's real vs guessed vs missing).
 - **Dashboard wired to live backend** — `frontend/src/lib/api.ts`, `hooks/useDashboard.ts`, live `index.tsx` (mock fallback + "backend unreachable" banner).
 - **Monorepo** — merged frontend+backend into one tree (`frontend/` + `backend/`), cut over to `main`.
+- **Auth + multi-tenancy** — `app/auth.py` `get_current_org()` verifies the Supabase JWT against the project's public JWKS (ES256, dqdmp project; no secret in backend) → get-or-creates the user's org + `app_user` (`supabase_uid`), defaults plan `free`. Scopes `/api/dashboard` + `POST /api/scans` by the caller's org (one place); no/invalid header → shared demo org so the no-login walkthrough still works. Frontend `api.ts` sends the access token. Signup/login were already wired to Supabase email auth.
 
 ### Infra / deploy / decisions
 - Repo **public**; Vercel **root dir = `frontend`**; production **builds green** and serves (behind Vercel login wall until protection disabled).
@@ -30,8 +31,8 @@ This tracks concrete done/remaining.
 ## ⛔ Remaining
 
 ### Integration (wire screens mock → real)
-1. **Supabase email auth + backend org-from-user + multi-tenancy** (foundation; assigns `plan` per signup). *Do first — avoids rewiring every screen.*
-2. **Assets + Findings** (endpoints exist — cleanest next).
+1. ~~**Supabase email auth + backend org-from-user + multi-tenancy**~~ ✅ DONE (see above). Note: `/api/orgs/{org_id}/*` explicit-org endpoints are not yet tenant-guarded (anyone can pass any id) — the *current-org* endpoints the frontend uses are scoped; guard the explicit ones when wiring screens that call them.
+2. **Assets + Findings** (endpoints exist — cleanest next). *Add current-org variants `Depends(get_current_org)` like `/api/dashboard`.*
 3. **Scan page** real `POST /api/scans` + poll (black/white-box; binary deferred).
 4. **Asset detail** (+ algorithm-name normalization fix).
 5. **Remediation / Compliance / Settings** (need backend work — see gaps).
