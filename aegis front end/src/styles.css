@@ -1,0 +1,625 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/* SF Pro (San Francisco) is the brand typeface — used via the system-font stack
+   below (renders on Apple devices; Inter/JetBrains kept as graceful fallbacks). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * Aegis — Quantum Cryptographic Posture Management
+ * "Frosted Aura": one calm, glassmorphic LIGHT theme across the whole site.
+ * Slate-blue (#5C7E8F) brand on a frosted-white canvas; pale blue-gray (#D4DDE2)
+ * ambient surfaces; translucent blurred glass panels with soft slate-blue auras.
+ * Muted red/amber/green kept only for crypto status semantics.
+ * SF Pro (San Francisco) via system-font stack for display + prose; SF Mono /
+ * JetBrains Mono for technical data. Aurora + glass spotlight + beam utilities below.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --font-display:
+    "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter Variable", system-ui,
+    sans-serif;
+  --font-sans:
+    "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Variable", system-ui,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "SF Mono", ui-monospace, "JetBrains Mono Variable", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-quantum-cyan: var(--quantum-cyan);
+  --color-quantum-violet: var(--quantum-violet);
+  --color-shor: var(--shor);
+  --color-grover: var(--grover);
+  --color-pqc: var(--pqc);
+  --color-elevated: var(--elevated);
+  --color-elevated-2: var(--elevated-2);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Frosted Aura neutrals — cool frosted-white canvas + deep slate ink. The
+     slate-blue brand + pale blue-gray surfaces read calm and glassy on top. */
+  --background: oklch(0.98 0.005 235);
+  --foreground: oklch(0.29 0.018 240);
+
+  /* Elevated surfaces step toward the pale blue-gray (#D4DDE2) */
+  --elevated: oklch(0.965 0.007 235);
+  --elevated-2: oklch(0.93 0.013 234);
+
+  --card: oklch(0.997 0.002 235);
+  --card-foreground: oklch(0.29 0.018 240);
+
+  --popover: oklch(0.997 0.002 235);
+  --popover-foreground: oklch(0.29 0.018 240);
+
+  /* Primary = slate-blue (#5C7E8F), deepened so white text clears AA. */
+  --primary: oklch(0.5 0.045 235);
+  --primary-foreground: oklch(0.99 0.003 235);
+
+  --secondary: oklch(0.95 0.008 234);
+  --secondary-foreground: oklch(0.34 0.02 238);
+
+  --muted: oklch(0.955 0.008 234);
+  /* Deep enough that body copy clears AA (4.5:1) even over the faint aurora
+     tints in the page backdrop — the readability floor. */
+  --muted-foreground: oklch(0.45 0.014 245);
+
+  /* Accent = pale blue-gray (#D4DDE2) hover/selected surface */
+  --accent: oklch(0.9 0.018 233);
+  --accent-foreground: oklch(0.36 0.035 236);
+
+  --destructive: oklch(0.55 0.16 25);
+  --destructive-foreground: oklch(0.99 0.003 235);
+
+  --border: oklch(0.45 0.03 240 / 0.14);
+  --input: oklch(0.45 0.03 240 / 0.2);
+  --ring: oklch(0.5 0.045 235 / 0.5);
+
+  /* Frosted brand pair — slate-blue → pale frosted blue. (Token names kept for
+     zero churn: --quantum-violet holds the slate pole, --quantum-cyan the pale.) */
+  --quantum-cyan: oklch(0.78 0.04 228);
+  --quantum-violet: oklch(0.56 0.05 233);
+
+  /* Brighter, more saturated blues — DECORATIVE ONLY (auroras/beams/glows/
+     particles). Never used for text or UI surfaces, which stay muted for AA. */
+  --blue-bright: oklch(0.7 0.14 230);
+  --blue-electric: oklch(0.6 0.17 248);
+  --gradient-aurora: linear-gradient(
+    120deg,
+    var(--quantum-violet),
+    var(--blue-electric),
+    var(--blue-bright),
+    var(--quantum-cyan)
+  );
+
+  /* Muted semantic crypto status — functional, harmonized with the cool palette */
+  --shor: oklch(0.55 0.15 22); /* muted red — broken */
+  --grover: oklch(0.62 0.09 65); /* muted ochre — weakened */
+  --pqc: oklch(0.56 0.09 165); /* muted sage-green — safe */
+
+  /* Brand gradient flows slate (violet pole) → pale frosted blue */
+  --gradient-quantum: linear-gradient(135deg, var(--quantum-violet) 0%, var(--quantum-cyan) 100%);
+  --gradient-quantum-soft: linear-gradient(
+    135deg,
+    oklch(0.56 0.05 233 / 0.14) 0%,
+    oklch(0.78 0.04 228 / 0.14) 100%
+  );
+  --gradient-radial-glow: radial-gradient(
+    60% 60% at 50% 0%,
+    oklch(0.56 0.05 233 / 0.14) 0%,
+    transparent 70%
+  );
+  --gradient-mesh:
+    radial-gradient(at 12% 8%, oklch(0.6 0.17 248 / 0.22) 0px, transparent 55%),
+    radial-gradient(at 88% 14%, oklch(0.7 0.14 230 / 0.2) 0px, transparent 55%),
+    radial-gradient(at 50% 100%, oklch(0.62 0.1 233 / 0.14) 0px, transparent 60%);
+
+  /* Brighter blue auras — for hero/key moments (decorative) */
+  --shadow-glow: 0 0 72px -12px oklch(0.6 0.17 248 / 0.5);
+  --shadow-glow-cyan: 0 0 72px -12px oklch(0.7 0.14 230 / 0.5);
+
+  /* Layered ambient shadows — cool slate-tinted (was warm graphite) */
+  --shadow-xs: 0 1px 2px oklch(0.29 0.018 240 / 0.05);
+  --shadow-sm: 0 1px 2px oklch(0.29 0.018 240 / 0.05), 0 1px 1px oklch(0.29 0.018 240 / 0.04);
+  --shadow-md: 0 2px 4px oklch(0.29 0.018 240 / 0.04), 0 8px 20px -8px oklch(0.29 0.018 240 / 0.14);
+  --shadow-card:
+    0 1px 2px oklch(0.29 0.018 240 / 0.04), 0 10px 30px -14px oklch(0.29 0.018 240 / 0.16);
+  --shadow-card-lg:
+    0 1px 3px oklch(0.29 0.018 240 / 0.05), 0 20px 50px -20px oklch(0.29 0.018 240 / 0.2);
+  --shadow-xl:
+    0 1px 3px oklch(0.29 0.018 240 / 0.06), 0 32px 64px -24px oklch(0.29 0.018 240 / 0.26);
+
+  --ease-out-quant: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --grid-color: oklch(0.29 0.018 240 / 0.05);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  /* Consistent, premium focus ring across all interactive elements */
+  :where(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background: oklch(0.56 0.05 233 / 0.22);
+    color: var(--color-foreground);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+@utility font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero", "ss02";
+}
+
+@utility text-gradient {
+  background: var(--gradient-quantum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-quantum {
+  background: var(--gradient-quantum);
+}
+
+@utility bg-quantum-soft {
+  background: var(--gradient-quantum-soft);
+}
+
+/* These read the RAW tokens (--card/--border/…) rather than the --color-*
+   theme aliases, so they re-resolve correctly inside scoped overrides like
+   .theme-dark / .section-dark (matching how Tailwind's own bg-card inlines). */
+@utility surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+@utility surface-2 {
+  background: var(--elevated-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Frosted glass — the signature surface. Translucent white with a strong blur,
+   a slate-blue hairline, and a bright inner top-highlight for crafted depth. */
+@utility glass {
+  background: oklch(1 0 0 / 0.55);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid oklch(0.56 0.05 233 / 0.16);
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.75) inset,
+    var(--shadow-card);
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+
+@utility dot-bg {
+  background-image: radial-gradient(var(--grid-color) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@utility glow {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility glow-cyan {
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+@utility glow-emerald {
+  box-shadow: 0 0 60px -14px oklch(0.56 0.05 233 / 0.5);
+}
+
+/* Frosted-aura feature backdrop — soft slate-blue / pale-blue radials. Use once
+   per viewport as a signature surface; keep neighbouring sections quiet. */
+@utility bg-gradient-mesh {
+  background-image:
+    radial-gradient(at 0% 0%, oklch(0.56 0.05 233 / 0.2) 0px, transparent 55%),
+    radial-gradient(at 100% 10%, oklch(0.7 0.05 228 / 0.18) 0px, transparent 55%),
+    radial-gradient(at 50% 100%, oklch(0.62 0.05 230 / 0.14) 0px, transparent 60%);
+}
+
+@utility status-shor {
+  background: color-mix(in oklab, var(--shor) 12%, white);
+  color: var(--shor);
+  border: 1px solid color-mix(in oklab, var(--shor) 28%, transparent);
+}
+
+@utility status-grover {
+  background: color-mix(in oklab, var(--grover) 12%, white);
+  color: var(--grover);
+  border: 1px solid color-mix(in oklab, var(--grover) 28%, transparent);
+}
+
+@utility status-pqc {
+  background: color-mix(in oklab, var(--pqc) 12%, white);
+  color: var(--pqc);
+  border: 1px solid color-mix(in oklab, var(--pqc) 28%, transparent);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, -10px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@utility animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@utility animate-drift {
+  animation: drift 14s ease-in-out infinite;
+}
+
+/* Aurora — larger, slower drift + gentle scale for ambient frosted blobs. */
+@keyframes aurora {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(10%, -7%) scale(1.15);
+  }
+  66% {
+    transform: translate(-8%, 8%) scale(0.9);
+  }
+}
+
+@utility animate-aurora {
+  animation: aurora 20s ease-in-out infinite;
+}
+
+/* Cooler background animations */
+@keyframes conic-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@utility animate-conic-spin {
+  animation: conic-spin 38s linear infinite;
+}
+
+@keyframes grid-drift {
+  to {
+    background-position:
+      48px 48px,
+      48px 48px;
+  }
+}
+@utility animate-grid-drift {
+  animation: grid-drift 9s linear infinite;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(1100%);
+    opacity: 0;
+  }
+}
+@utility animate-scan-sweep {
+  animation: scan-sweep 4.2s ease-in-out infinite;
+}
+
+@keyframes beam-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@utility animate-beam-glow {
+  animation: beam-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@utility animate-float-y {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+/* Slowly-drifting dot field — modern ambient texture behind sections. */
+@keyframes dot-drift {
+  to {
+    background-position:
+      26px 52px,
+      26px 52px;
+  }
+}
+@utility bg-dots-animated {
+  background-image: radial-gradient(var(--grid-color) 1px, transparent 1px);
+  background-size: 26px 26px;
+  animation: dot-drift 16s linear infinite;
+}
+
+/* Faint film grain for tactile, cinematic depth (apply with low opacity). */
+@utility bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Frosted scrim — drop BEHIND text that sits over busy effect layers so the
+   copy keeps its contrast. Pair with `relative z-10` content above it. */
+@utility text-scrim {
+  background: radial-gradient(
+    120% 120% at 30% 40%,
+    color-mix(in oklab, var(--background) 78%, transparent) 0%,
+    color-mix(in oklab, var(--background) 40%, transparent) 45%,
+    transparent 75%
+  );
+}
+
+/* Beam — a bright segment travelling down a rail to "flow" the loop. */
+@keyframes beam-travel {
+  0% {
+    transform: translateY(-130%);
+  }
+  100% {
+    transform: translateY(460%);
+  }
+}
+
+@utility animate-beam-travel {
+  animation: beam-travel 3.4s linear infinite;
+}
+
+@utility animate-scan {
+  animation: scan-line 2.4s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------------------
+ * Premium polish system — consistent elevation, interaction, and accents.
+ * Used across every surface so the product reads intentional, not templated.
+ * ------------------------------------------------------------------------- */
+
+@layer components {
+  /* Interactive lift: hover raises the surface with a softer, larger shadow.
+     Applied to cards/tiles that are links or key focal points. */
+  .lift {
+    transition:
+      transform 0.22s var(--ease-out-quant),
+      box-shadow 0.22s var(--ease-out-quant),
+      border-color 0.22s var(--ease-out-quant);
+    will-change: transform;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-xl);
+    border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
+  }
+
+  /* Cyan→violet hairline border for featured / signature cards. The card
+     keeps its own background; only the 1px frame carries the brand gradient. */
+  .gradient-border {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      var(--gradient-quantum) border-box;
+  }
+
+  /* Premium card: soft elevation + a hairline top highlight for tactile depth. */
+  .card-premium {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow:
+      0 1px 0 0 oklch(1 0 0 / 0.6) inset,
+      var(--shadow-card);
+  }
+
+  /* Subtle inner ring used on inputs/panels for a crafted, layered feel. */
+  .ring-inset-soft {
+    box-shadow: 0 0 0 1px oklch(1 0 0 / 0.5) inset;
+  }
+}
+
+/* Scroll/intro reveal — quiet, staggered entrance. Motion-safe only. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility reveal {
+  animation: reveal-up 0.6s var(--ease-out-quant) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.4s var(--ease-out-quant) both;
+}
+
+/* No dark scopes — Frosted Aura is a single light theme across the whole site.
+   (The former `.section-dark` hero + `.theme-dark` product-app scopes were
+   removed; everything now reads the light `:root` tokens above.) */
+
+/* ---- Marquee (infinite ticker) ---- */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-marquee {
+  animation: marquee var(--marquee-duration, 32s) linear infinite;
+}
+
+/* ---- Shimmer (animated gradient sweep across text / surfaces) ---- */
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Subtle slate shimmer for the hero headline. Both poles stay deep enough that
+   large display text clears AA (3:1) on the frosted-white canvas — the pale
+   --quantum-cyan is reserved for gradients/glow, never headline text. */
+@utility text-gradient-animated {
+  background: linear-gradient(
+    100deg,
+    var(--quantum-violet) 0%,
+    oklch(0.62 0.07 220) 25%,
+    var(--quantum-violet) 50%,
+    oklch(0.62 0.07 220) 75%,
+    var(--quantum-violet) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}

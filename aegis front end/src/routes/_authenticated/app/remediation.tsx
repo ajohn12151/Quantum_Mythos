@@ -1,0 +1,292 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  GitPullRequest,
+  RefreshCw,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import {
+  remediations,
+  REMEDIATION_STATES,
+  type Remediation,
+  type RemediationState,
+} from "@/lib/mock-data";
+
+export const Route = createFileRoute("/_authenticated/app/remediation")({
+  component: RemediationPage,
+});
+
+const EASE = [0.2, 0.7, 0.2, 1] as const;
+
+function RemediationPage() {
+  const reduce = useReducedMotion();
+  // Items the verification re-scan has flipped from "migrated" → "verified".
+  const [verified, setVerified] = useState<Set<string>>(new Set());
+  const [scanning, setScanning] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>("rem_01");
+
+  const items = useMemo(
+    () =>
+      remediations.map((r) =>
+        verified.has(r.id) ? { ...r, state: "verified" as RemediationState } : r,
+      ),
+    [verified],
+  );
+  const selected = items.find((r) => r.id === selectedId) ?? items[0];
+  const migratedCount = items.filter((r) => r.state === "migrated").length;
+
+  function runVerify() {
+    if (scanning || migratedCount === 0) return;
+    setScanning(true);
+    const toFlip = items.filter((r) => r.state === "migrated").map((r) => r.id);
+    // Stagger the red→green flips for a satisfying cascade.
+    toFlip.forEach((id, i) => {
+      window.setTimeout(
+        () => {
+          setVerified((prev) => new Set(prev).add(id));
+          if (i === toFlip.length - 1) setScanning(false);
+        },
+        500 + i * 450,
+      );
+    });
+  }
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Pipeline"
+        title="Remediation"
+        description="Every asset walks the lifecycle: Discovered → Triaged → PR open → Migrated → Verified. Re-scan to flip migrated assets from red to green."
+        action={
+          <button
+            onClick={runVerify}
+            disabled={scanning || migratedCount === 0}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${scanning ? "animate-spin" : ""}`} />
+            {scanning ? "Re-scanning…" : `Re-scan to verify (${migratedCount})`}
+          </button>
+        }
+      />
+
+      <div className="space-y-6 px-8 py-8">
+        {/* Pipeline board */}
+        <div className="grid gap-4 lg:grid-cols-5">
+          {REMEDIATION_STATES.map((col) => {
+            const cards = items.filter((r) => r.state === col.key);
+            return (
+              <div key={col.key} className="flex min-w-0 flex-col">
+                <div className="mb-3 flex items-center justify-between px-1">
+                  <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    {col.label}
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+                    {cards.length}
+                  </span>
+                </div>
+                <motion.div layout className="flex flex-col gap-3">
+                  <AnimatePresence initial={false}>
+                    {cards.map((r) => (
+                      <PipelineCard
+                        key={r.id}
+                        r={r}
+                        active={selected?.id === r.id}
+                        onClick={() => setSelectedId(r.id)}
+                        reduce={!!reduce}
+                      />
+                    ))}
+                  </AnimatePresence>
+                  {cards.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-border/70 py-6 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+                      empty
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Selected PR detail */}
+        {selected && <PrDetail r={selected} />}
+      </div>
+    </>
+  );
+}
+
+const stateColor: Record<RemediationState, string> = {
+  discovered: "var(--shor)",
+  triaged: "var(--grover)",
+  pr_open: "var(--quantum-cyan)",
+  migrated: "var(--quantum-violet)",
+  verified: "var(--pqc)",
+};
+
+function PipelineCard({
+  r,
+  active,
+  onClick,
+  reduce,
+}: {
+  r: Remediation;
+  active: boolean;
+  onClick: () => void;
+  reduce: boolean;
+}) {
+  const isVerified = r.state === "verified";
+  return (
+    <motion.button
+      layout
+      layoutId={r.id}
+      onClick={onClick}
+      initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className={`group relative overflow-hidden rounded-lg border p-3 text-left transition-colors ${
+        active ? "border-primary/50 bg-accent/50" : "border-border bg-card hover:border-border/80"
+      }`}
+    >
+      <span
+        className="absolute inset-y-0 left-0 w-0.5"
+        style={{ background: stateColor[r.state] }}
+        aria-hidden
+      />
+      <div className="flex items-start justify-between gap-2">
+        <span className="truncate text-[13px] font-medium">{r.asset}</span>
+        {isVerified ? (
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-pqc" />
+        ) : r.pr ? (
+          <GitPullRequest className="h-3.5 w-3.5 shrink-0 text-quantum-cyan" />
+        ) : null}
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[10px]">
+        <span className="text-shor">{r.from}</span>
+        <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />
+        <span className={isVerified ? "text-pqc" : "text-foreground/80"}>{r.to}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+        <span>{r.pr ? `#${r.pr}` : r.owner}</span>
+        <span>{r.updatedAt}</span>
+      </div>
+    </motion.button>
+  );
+}
+
+function PrDetail({ r }: { r: Remediation }) {
+  const hasDiff = r.diffBefore && r.diffAfter;
+  return (
+    <motion.div
+      key={r.id}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="grid gap-6 lg:grid-cols-[1.6fr_1fr]"
+    >
+      <div className="surface overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-quantum-soft text-quantum-violet">
+              <GitPullRequest className="h-4.5 w-4.5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">
+                {r.pr ? `PR #${r.pr} · crypto-agility: ${r.asset}` : `${r.asset} — not yet opened`}
+              </div>
+              <div className="font-mono text-[11px] text-muted-foreground">
+                {r.from} → {r.to} · {r.owner} · {r.updatedAt}
+              </div>
+            </div>
+          </div>
+          <StateChip state={r.state} />
+        </div>
+
+        {hasDiff ? (
+          <div className="p-5 font-mono text-[12.5px] leading-relaxed">
+            <div className="overflow-x-auto rounded-lg border border-border bg-muted p-4">
+              <div className="text-shor">- {r.diffBefore}</div>
+              <div className="text-pqc">+ {r.diffAfter}</div>
+            </div>
+            <p className="mt-4 font-sans text-xs leading-relaxed text-muted-foreground">
+              The agility refactor only swaps the call-site to a verified post-quantum library — the
+              primitive is never authored by the agent. Every change is gated by the checks on the
+              right and a human review.
+            </p>
+          </div>
+        ) : (
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              This asset is in <span className="text-foreground">{labelOf(r.state)}</span>. A
+              migration PR will be drafted once it is triaged.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="surface p-6">
+        <div className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Safety gates
+        </div>
+        <h3 className="font-display mt-1 text-lg tracking-tight">Differential & size checks</h3>
+        <div className="mt-4 space-y-2.5">
+          {(r.checks ?? defaultChecks(r.state)).map((c) => (
+            <div
+              key={c.label}
+              className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
+            >
+              <span
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                  c.pass ? "bg-pqc/15 text-pqc" : "bg-grover/15 text-grover"
+                }`}
+              >
+                {c.pass ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+              </span>
+              <span className="text-xs text-foreground/85">{c.label}</span>
+            </div>
+          ))}
+        </div>
+        {r.state === "verified" && (
+          <div className="mt-5 flex items-center gap-2 rounded-lg border border-pqc/30 bg-pqc/10 px-3 py-2.5 text-xs text-pqc">
+            <CheckCircle2 className="h-4 w-4" /> Re-scan confirmed quantum-safe.
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function defaultChecks(state: RemediationState) {
+  if (state === "discovered" || state === "triaged")
+    return [
+      { label: "awaiting migration PR", pass: false },
+      { label: "verified library selected", pass: state === "triaged" },
+    ];
+  return [{ label: "differential round-trip", pass: true }];
+}
+
+function labelOf(state: RemediationState) {
+  return REMEDIATION_STATES.find((s) => s.key === state)?.label ?? state;
+}
+
+function StateChip({ state }: { state: RemediationState }) {
+  const cls =
+    state === "verified"
+      ? "status-pqc"
+      : state === "discovered"
+        ? "status-shor"
+        : state === "triaged"
+          ? "status-grover"
+          : "";
+  return (
+    <span
+      className={`rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider ${cls || "border border-border bg-muted text-muted-foreground"}`}
+    >
+      {labelOf(state)}
+    </span>
+  );
+}
