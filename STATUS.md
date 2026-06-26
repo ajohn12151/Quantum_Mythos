@@ -41,6 +41,12 @@ This tracks concrete done/remaining.
 - **Host the backend** (free: Oracle Always-Free ARM / Render / local+tunnel) + set **`VITE_API_BASE_URL`** on Vercel → real data on the hosted site.
 - **Disable Vercel Deployment Protection** to make the site publicly viewable.
 
+### Email / auth (signup confirmation flow)
+- **Canonical Supabase project = `wxiwu…` ("Aegis", ajohn12151's, Production)** — the one Alan owns/controls. `dqdmp…` was the Lovable auto-created throwaway that leaked into the committed `frontend/.env`. Vercel has **no env vars**, so the live site builds from `frontend/.env`; repoint that + backend `SUPABASE_URL` to wxiwu so auth + SMTP live on one project.
+- **Custom SMTP = Resend.** ⏳ **TODO: buy + verify a real sending domain** (Cloudflare/Namecheap ~$10/yr) → Resend Domains → add DNS (SPF/DKIM) → set Sender `noreply@<domain>`. Until then we're on **Option A: `onboarding@resend.dev`** which only delivers to the Resend-account owner's own email (test mode) — good enough to demo signup→confirmation live, NOT for public/judge signups.
+- Set wxiwu **URL Configuration**: Site URL + redirect allow-list (Vercel prod + localhost, `/**`).
+- ⚠️ **Rotate the Resend API key** (`re_axTjwfeA_…`) after the hackathon — pasted in chat.
+
 ### Post-judging
 - Flip `GATING_ENABLED=True` + add `allows()` checks at scan/CBOM/remediation; comp the demo org to `enterprise`.
 - **Merge binary `backend` branch → `main`**; then expose binary/container/CBOM in the UI.
