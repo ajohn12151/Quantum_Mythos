@@ -14,7 +14,12 @@ _SCHEMA = pathlib.Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
 async def init_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
-        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+        # statement_cache_size=0 keeps us compatible with PgBouncer-style poolers
+        # (e.g. Supabase's transaction pooler), which don't support the prepared
+        # statements asyncpg caches by default. Harmless on a direct connection.
+        _pool = await asyncpg.create_pool(
+            DATABASE_URL, min_size=1, max_size=10, statement_cache_size=0
+        )
         await apply_schema()
     return _pool
 

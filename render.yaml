@@ -1,0 +1,30 @@
+# Render Blueprint — free, always-on backend (no laptop needed).
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Then set the
+# two `sync: false` secrets (DATABASE_URL, GROQ_API_KEY) in the dashboard.
+# Frontend talks to this service's URL via VITE_API_BASE_URL (set in Vercel).
+services:
+  - type: web
+    name: quantum-mythos-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    branch: main
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      # Postgres. Use the Supabase *Session pooler* connection string (IPv4 +
+      # persistent connections). Set in the dashboard, not committed.
+      - key: DATABASE_URL
+        sync: false
+      # Groq powers white-box triage. Black-box scanning works without it.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: LLM_PROVIDER
+        value: groq
+      # The Supabase project whose JWTs we verify (must match the frontend).
+      - key: SUPABASE_URL
+        value: https://wxiwudhsxkfmsoavxuuf.supabase.co
+      # Allow the Vercel frontend (and local dev) to call the API.
+      - key: CORS_ORIGINS
+        value: "*"

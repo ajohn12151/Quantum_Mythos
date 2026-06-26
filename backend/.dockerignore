@@ -1,0 +1,7 @@
+.venv/
+binary_bench/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+.pytest_cache/
