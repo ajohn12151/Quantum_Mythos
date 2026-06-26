@@ -5,8 +5,12 @@
 CREATE TABLE IF NOT EXISTS org (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name         TEXT NOT NULL,
+    plan         TEXT NOT NULL DEFAULT 'free'
+                 CHECK (plan IN ('free','pro','enterprise')),  -- entitlement tier
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- idempotent for already-created DBs
+ALTER TABLE IF EXISTS org ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
 
 -- Minimal user table for the demo sign-up/login (Alan's button hits this).
 CREATE TABLE IF NOT EXISTS app_user (
