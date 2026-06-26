@@ -19,7 +19,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from . import db
+from . import db, dto
 from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
@@ -75,6 +75,25 @@ async def _demo_org() -> UUID:
     if row:
         return row["id"]
     return await con.fetchval("INSERT INTO org(name) VALUES('Demo Org') RETURNING id")
+
+
+async def _snapshot_posture(con, org_id, scan_id) -> None:
+    """Record the org's current posture after a scan — the historical trend data
+    (we accrue real history; we never fabricate a past)."""
+    rows = await con.fetch(
+        "SELECT category, count(*) AS c FROM crypto_asset WHERE org_id=$1 GROUP BY category",
+        org_id,
+    )
+    counts = {r["category"]: r["c"] for r in rows}
+    broken = counts.get("shor_broken", 0)
+    weakened = counts.get("grover_weakened", 0)
+    safe = counts.get("pqc", 0)
+    total = sum(counts.values())
+    await con.execute(
+        "INSERT INTO scan_summary(org_id, scan_id, broken, weakened, safe, total, risk_score) "
+        "VALUES($1,$2,$3,$4,$5,$6,$7)",
+        org_id, scan_id, broken, weakened, safe, total, dto.risk_score(broken, weakened, total),
+    )
 
 
 MAX_HOSTS = 20          # cap fan-out so a scan stays demo-fast
@@ -168,6 +187,7 @@ async def _run_blackbox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
             "discovery_sources": {"ct_logs": len(ct_hosts), "cert_sans": len(sans)},
         }),
     )
+    await _snapshot_posture(con, org_id, scan_id)
 
 
 async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
@@ -215,6 +235,7 @@ async def _run_whitebox_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
         json.dumps({"pqc_vulnerable": pqc, "misuse_findings": misuse,
                     "suppressed_false_positives": suppressed, "total": len(findings)}),
     )
+    await _snapshot_posture(con, org_id, scan_id)
 
 
 async def _run_binary_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
@@ -254,6 +275,7 @@ async def _run_binary_scan(scan_id: UUID, org_id: UUID, target: str) -> None:
         "UPDATE scan SET status='done', finished_at=now(), summary_json=$2::jsonb WHERE id=$1",
         scan_id, json.dumps({**scan.summary(), "assets_persisted": persisted}),
     )
+    await _snapshot_posture(con, org_id, scan_id)
 
 
 # ---------- routes ----------
@@ -341,20 +363,46 @@ async def get_asset(asset_id: UUID):
 
 @app.get("/api/orgs/{org_id}/dashboard")
 async def dashboard(org_id: UUID):
+    """BFF: the full payload the frontend dashboard renders, in its DTO shape."""
     con = db.pool()
-    by_cat = await con.fetch(
-        "SELECT category, count(*) FROM crypto_asset WHERE org_id=$1 GROUP BY category", org_id
-    )
-    progress = await con.fetchrow(
-        """SELECT count(*) AS total,
-                  count(*) FILTER (WHERE r.state='verified') AS verified
+    by_cat = {r["category"]: r["count"] for r in await con.fetch(
+        "SELECT category, count(*) FROM crypto_asset WHERE org_id=$1 GROUP BY category", org_id)}
+    broken = by_cat.get("shor_broken", 0)
+    weakened = by_cat.get("grover_weakened", 0)
+    safe = by_cat.get("pqc", 0)
+    total = sum(by_cat.values())
+    hndl_exposed = await con.fetchval(
+        "SELECT count(*) FROM crypto_asset WHERE org_id=$1 AND hndl_risk='high'", org_id) or 0
+
+    # Top non-safe findings by HNDL/priority, mapped to the Asset DTO.
+    top_rows = await con.fetch(
+        """SELECT a.*, r.state AS remediation_state, r.pr_url
            FROM crypto_asset a LEFT JOIN remediation r ON r.asset_id=a.id
-           WHERE a.org_id=$1""",
-        org_id,
-    )
+           WHERE a.org_id=$1 AND a.category <> 'pqc'
+           ORDER BY a.priority_score DESC NULLS LAST LIMIT 6""", org_id)
+
+    # Posture trend from real snapshots (empty until scans accrue — never faked).
+    trend = await con.fetch(
+        """SELECT captured_at, broken, weakened, safe FROM scan_summary
+           WHERE org_id=$1 ORDER BY captured_at DESC LIMIT 12""", org_id)
+    posture_series = [
+        {"week": r["captured_at"].strftime("%b %d"),
+         "broken": r["broken"], "weakened": r["weakened"], "safe": r["safe"]}
+        for r in reversed(trend)
+    ]
+
+    recent = await con.fetch(
+        "SELECT * FROM scan WHERE org_id=$1 ORDER BY started_at DESC LIMIT 8", org_id)
+
     return {
-        "counts_by_category": {r["category"]: r["count"] for r in by_cat},
-        "migration_progress": dict(progress) if progress else {},
+        "totals": {"broken": broken, "weakened": weakened, "safe": safe,
+                   "total": total, "hndlExposed": hndl_exposed},
+        "riskScore": dto.risk_score(broken, weakened, total),
+        "postureSeries": posture_series,
+        "topFindings": [dto.asset_to_dto(dict(r)) for r in top_rows],
+        "recentScans": [dto.scan_to_dto(dict(r)) for r in recent],
+        # kept for backward-compat with the earlier shape
+        "counts_by_category": by_cat,
     }
 
 

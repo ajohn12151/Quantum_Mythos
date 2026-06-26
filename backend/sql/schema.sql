@@ -83,6 +83,22 @@ CREATE TABLE IF NOT EXISTS finding (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Posture snapshot per scan — the seed of the historical state-of-record.
+-- Feeds the dashboard "posture over time" (red->green) trend; accrues real
+-- history going forward (we cannot fabricate a past). One row per scan.
+CREATE TABLE IF NOT EXISTS scan_summary (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id       UUID NOT NULL REFERENCES org(id) ON DELETE CASCADE,
+    scan_id      UUID REFERENCES scan(id) ON DELETE SET NULL,
+    captured_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    broken       INT NOT NULL DEFAULT 0,
+    weakened     INT NOT NULL DEFAULT 0,
+    safe         INT NOT NULL DEFAULT 0,
+    total        INT NOT NULL DEFAULT 0,
+    risk_score   INT NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_scan_summary_org_time ON scan_summary(org_id, captured_at);
+
 -- idempotent migrations (so an already-created DB picks up new columns)
 ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS file_path TEXT;
 ALTER TABLE IF EXISTS finding ADD COLUMN IF NOT EXISTS line INT;
