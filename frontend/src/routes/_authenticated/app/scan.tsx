@@ -4,92 +4,181 @@ import { CheckCircle2, GitBranch, Globe, Loader2, Play, Square, Terminal } from 
 import { PageHeader } from "@/components/app/PageHeader";
 import { Reveal } from "@/components/marketing/Reveal";
 import { useCountUp } from "@/hooks/use-count-up";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/_authenticated/app/scan")({ component: ScanPage });
 
 type Mode = "domain" | "repo";
 
-const DOMAIN_SCRIPT: Line[] = [
-  { kind: "cmd", text: "$ aegis scan acme.com --depth=subdomains+ct" },
-  { kind: "info", text: "→ Resolving DNS, CT logs, passive sources…" },
-  { kind: "info", text: "→ 412 subdomains discovered (crt.sh, ctlogs.io, internal)" },
-  { kind: "info", text: "→ Probing TLS on 412 endpoints (parallel=32)" },
-  { kind: "tls", host: "api.acme.com", algo: "RSA-2048", status: "broken" },
-  { kind: "tls", host: "checkout.acme.com", algo: "ECDSA-P256", status: "broken" },
-  { kind: "tls", host: "admin.acme.com", algo: "X25519MLKEM768", status: "safe" },
-  { kind: "tls", host: "vault.acme.internal", algo: "RSA-4096", status: "broken" },
-  { kind: "tls", host: "edi.acme.com", algo: "DH-2048", status: "broken" },
-  { kind: "tls", host: "otel.acme.internal", algo: "AES-128", status: "weakened" },
-  { kind: "tls", host: "legacy-sso.acme.com", algo: "SHA-1", status: "broken" },
-  { kind: "info", text: "→ Probing SSH banners on 27 bastions…" },
-  { kind: "tls", host: "git-bastion-01", algo: "Ed25519", status: "broken" },
-  { kind: "info", text: "→ Mining MX & SMTP TLS profiles…" },
-  { kind: "info", text: "→ Cross-referencing against CT log historical issuance" },
-  { kind: "ok", text: "✓ Scan scn_92 complete in 47.3s — 27 findings written to inventory" },
-];
-
-const REPO_SCRIPT: Line[] = [
-  { kind: "cmd", text: "$ aegis scan --repo github.com/acme/payments-svc" },
-  { kind: "info", text: "→ Cloning shallow @ HEAD (depth=1) …" },
-  { kind: "info", text: "→ Parsing Go AST + go.sum (1,284 files, 312 deps)" },
-  { kind: "tls", host: "internal/jwt/sign.go:42", algo: "ECDSA-P256", status: "broken" },
-  { kind: "tls", host: "vendor/crypto-tls:openssl", algo: "RSA-2048", status: "broken" },
-  { kind: "tls", host: "internal/storage/aead.go", algo: "AES-256", status: "safe" },
-  { kind: "tls", host: "cmd/sign/release.go:88", algo: "ML-DSA-65", status: "safe" },
-  { kind: "info", text: "→ Resolving call graph for crypto/* usages" },
-  { kind: "info", text: "→ 14 sinks reach external surfaces (TLS, JWT, JWS)" },
-  { kind: "ok", text: "✓ Scan scn_93 complete — 14 findings, 2 require dependency bumps" },
-];
-
 type Line =
   | { kind: "cmd"; text: string }
   | { kind: "info"; text: string }
   | { kind: "ok"; text: string }
+  | { kind: "err"; text: string }
   | { kind: "tls"; host: string; algo: string; status: "broken" | "weakened" | "safe" };
+
+const POLL_MS = 2000;
+const POLL_TIMEOUT_MS = 180_000; // give white-box clones/semgrep room
+
+// Build human progress lines from a scan's real summary_json.
+function summaryLines(mode: Mode, s: Record<string, number>): string[] {
+  const out: string[] = [];
+  if (mode === "domain") {
+    if (s.hosts_scanned != null) out.push(`→ Probed ${s.hosts_scanned} endpoints`);
+    if (s.shadow_hosts_discovered != null)
+      out.push(`→ ${s.shadow_hosts_discovered} shadow hosts surfaced via CT logs`);
+    if (s.tls_hosts != null)
+      out.push(`→ ${s.tls_hosts} TLS · ${s.ssh_host_keys ?? 0} SSH · ${s.mail_servers ?? 0} mail`);
+    if (s.no_forward_secrecy) out.push(`→ ${s.no_forward_secrecy} endpoints without forward secrecy`);
+  } else {
+    if (s.total != null) out.push(`→ ${s.total} raw findings`);
+    if (s.suppressed_false_positives != null)
+      out.push(`→ ${s.suppressed_false_positives} false positives suppressed (triage)`);
+    if (s.pqc_vulnerable != null) out.push(`→ ${s.pqc_vulnerable} quantum-vulnerable keygens`);
+    if (s.misuse_findings != null) out.push(`→ ${s.misuse_findings} classical misuse findings`);
+  }
+  return out;
+}
+
+function findingsTotal(mode: Mode, s: Record<string, number>): number {
+  return mode === "domain"
+    ? (s.assets_found ?? 0)
+    : (s.pqc_vulnerable ?? 0) + (s.misuse_findings ?? 0);
+}
+
+function safeParse(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
 
 function ScanPage() {
   const [mode, setMode] = useState<Mode>("domain");
-  const [target, setTarget] = useState("acme.com");
+  const [target, setTarget] = useState("");
   const [running, setRunning] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [complete, setComplete] = useState(false);
-  const timers = useRef<number[]>([]);
+  const [findings, setFindings] = useState(0);
+  const runId = useRef(0); // bumped per run so stale polls/cancels are ignored
+  const pollTimer = useRef<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const findingsCount = (mode === "domain" ? DOMAIN_SCRIPT : REPO_SCRIPT).filter(
-    (l) => l.kind === "tls",
-  ).length;
-
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
-
+  useEffect(() => () => stopPolling(), []);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [lines]);
 
-  function start() {
-    cancel();
+  const push = (line: Line) => setLines((prev) => [...prev, line]);
+
+  function stopPolling() {
+    if (pollTimer.current !== null) {
+      window.clearTimeout(pollTimer.current);
+      pollTimer.current = null;
+    }
+  }
+
+  async function start() {
+    stopPolling();
+    const myRun = ++runId.current;
     setRunning(true);
     setComplete(false);
+    setFindings(0);
     setLines([]);
-    const script = mode === "domain" ? DOMAIN_SCRIPT : REPO_SCRIPT;
-    script.forEach((line, i) => {
-      const id = window.setTimeout(
-        () => {
-          setLines((prev) => [...prev, line]);
-          if (i === script.length - 1) {
-            setRunning(false);
-            setComplete(true);
-          }
-        },
-        350 + i * 420,
-      );
-      timers.current.push(id);
+
+    const scanMode = mode === "domain" ? "black_box" : "white_box";
+    const t = target.trim();
+    push({ kind: "cmd", text: `$ aegis scan ${t}` });
+    push({
+      kind: "info",
+      text:
+        mode === "domain"
+          ? "→ Submitting black-box scan (TLS · CT logs · SSH · mail)…"
+          : "→ Submitting white-box scan (clone · semgrep · triage)…",
     });
+
+    let handle;
+    try {
+      handle = await api.createScan(scanMode, t);
+    } catch (e) {
+      if (myRun !== runId.current) return;
+      push({ kind: "err", text: `✗ Could not reach the scanner API — ${(e as Error).message}` });
+      setRunning(false);
+      return;
+    }
+    if (myRun !== runId.current) return;
+    push({ kind: "info", text: `→ Scan ${handle.scan_id.slice(0, 8)} running on the server…` });
+
+    const startedAt = Date.now();
+    const poll = async () => {
+      if (myRun !== runId.current) return;
+      let status = "running";
+      let summaryRaw: unknown = null;
+      try {
+        const s = await api.scanStatus(handle.scan_id);
+        status = s.status;
+        summaryRaw = s.summary_json;
+      } catch {
+        // transient (e.g. Render cold start) — keep polling
+      }
+      if (myRun !== runId.current) return;
+
+      if (status === "done") {
+        await finish(handle.scan_id, summaryRaw, myRun);
+      } else if (status === "error") {
+        push({ kind: "err", text: "✗ Scan failed on the server. Check the target and try again." });
+        setRunning(false);
+      } else if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+        push({
+          kind: "err",
+          text: "✗ Scan timed out here — it may still finish on the server; check the dashboard shortly.",
+        });
+        setRunning(false);
+      } else {
+        pollTimer.current = window.setTimeout(poll, POLL_MS);
+      }
+    };
+    pollTimer.current = window.setTimeout(poll, POLL_MS);
+  }
+
+  async function finish(scanId: string, summaryRaw: unknown, myRun: number) {
+    let summary: Record<string, number> = {};
+    const parsed = typeof summaryRaw === "string" ? safeParse(summaryRaw) : summaryRaw;
+    if (parsed && typeof parsed === "object") summary = parsed as Record<string, number>;
+
+    summaryLines(mode, summary).forEach((text) => push({ kind: "info", text }));
+
+    // Pull the real discovered assets so the terminal shows actual findings.
+    let total = findingsTotal(mode, summary);
+    try {
+      const dash = await api.dashboard();
+      if (myRun !== runId.current) return;
+      (dash.topFindings ?? []).slice(0, 12).forEach((a) =>
+        push({
+          kind: "tls",
+          host: a.host ?? a.name,
+          algo: a.algorithm,
+          status: a.status === "weakened" ? "weakened" : a.status === "safe" ? "safe" : "broken",
+        }),
+      );
+      if (!total) total = dash.totals?.total ?? 0;
+    } catch {
+      // best-effort; summary counts still shown
+    }
+
+    push({
+      kind: "ok",
+      text: `✓ Scan ${scanId.slice(0, 8)} complete — ${total} findings written to inventory`,
+    });
+    setFindings(total);
+    setRunning(false);
+    setComplete(true);
   }
 
   function cancel() {
-    timers.current.forEach((t) => window.clearTimeout(t));
-    timers.current = [];
+    stopPolling();
+    runId.current++; // invalidate any in-flight poll/finish
     setRunning(false);
   }
 
@@ -125,7 +214,10 @@ function ScanPage() {
               <input
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                placeholder={mode === "domain" ? "acme.com" : "github.com/acme/payments-svc"}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && target.trim() && !running) start();
+                }}
+                placeholder={mode === "domain" ? "github.com" : "https://github.com/owner/repo"}
                 className="h-10 w-full rounded-lg border border-border bg-card px-3 font-mono text-sm focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -140,7 +232,7 @@ function ScanPage() {
               {!running ? (
                 <button
                   onClick={start}
-                  disabled={!target}
+                  disabled={!target.trim()}
                   className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Play className="h-4 w-4" /> Run scan
@@ -163,7 +255,7 @@ function ScanPage() {
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="text-sm font-semibold">Scan complete</span>
                 </div>
-                <FindingsCount target={findingsCount} start={complete} />
+                <FindingsCount target={findings} start={complete} />
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                 Findings have been written to your inventory and the prioritization queue.
@@ -195,7 +287,7 @@ function ScanPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-pqc/70" />
               </div>
               <span className="ml-2 font-mono text-[11px] text-muted-foreground">
-                aegis@scanner — {mode === "domain" ? target : target.replace(/^https?:\/\//, "")}
+                aegis@scanner — {target ? target.replace(/^https?:\/\//, "") : "idle"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -220,7 +312,8 @@ function ScanPage() {
             )}
             {lines.length === 0 && !running && (
               <div className="text-muted-foreground">
-                <span className="text-quantum-cyan">aegis</span> ready. Press{" "}
+                <span className="text-quantum-cyan">aegis</span> ready. Enter a{" "}
+                {mode === "domain" ? "domain" : "repository URL"} and press{" "}
                 <span className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
                   Run scan
                 </span>{" "}
@@ -257,6 +350,7 @@ function LineRow({ line }: { line: Line }) {
   if (line.kind === "cmd") return <div className="text-foreground">{line.text}</div>;
   if (line.kind === "info") return <div className="text-muted-foreground">{line.text}</div>;
   if (line.kind === "ok") return <div className="mt-1 text-pqc">{line.text}</div>;
+  if (line.kind === "err") return <div className="mt-1 text-shor">{line.text}</div>;
   const color =
     line.status === "broken"
       ? "text-shor"
