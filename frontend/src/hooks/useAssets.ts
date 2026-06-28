@@ -15,6 +15,7 @@ export interface AssetView {
   owner: string;
   environment: string;
   hndlRisk: number;
+  remediationState: string | null;
 }
 
 function fromDTO(a: AssetDTO): AssetView {
@@ -29,6 +30,7 @@ function fromDTO(a: AssetDTO): AssetView {
     owner: a.owner ?? "—", // backend can't know owner — shown as — (never fabricated)
     environment: a.environment ?? "—",
     hndlRisk: a.hndlRisk,
+    remediationState: a.remediationState,
   };
 }
 
@@ -43,6 +45,7 @@ const MOCK: AssetView[] = mockAssets.map((a) => ({
   owner: a.owner,
   environment: a.environment,
   hndlRisk: a.hndlRisk,
+  remediationState: "discovered",
 }));
 
 export function useAssets(): { rows: AssetView[]; live: boolean } {

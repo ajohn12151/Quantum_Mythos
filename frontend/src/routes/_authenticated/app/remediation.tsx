@@ -11,12 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
-import {
-  remediations,
-  REMEDIATION_STATES,
-  type Remediation,
-  type RemediationState,
-} from "@/lib/mock-data";
+import { REMEDIATION_STATES, remediations, type RemediationState } from "@/lib/mock-data";
+import { useAssets } from "@/hooks/useAssets";
 
 export const Route = createFileRoute("/_authenticated/app/remediation")({
   component: RemediationPage,
@@ -24,28 +20,76 @@ export const Route = createFileRoute("/_authenticated/app/remediation")({
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
 
+// Looser view model (real algorithms are free-text, unlike the strict mock union).
+interface RemView {
+  id: string;
+  asset: string;
+  from: string;
+  to: string;
+  state: RemediationState;
+  owner: string;
+  pr?: number;
+  updatedAt: string;
+  diffBefore?: string;
+  diffAfter?: string;
+  checks?: { label: string; pass: boolean }[];
+}
+
+const REM_STATES = new Set(["discovered", "triaged", "pr_open", "migrated", "verified"]);
+
+// Suggested PQC target for a vulnerable algorithm (illustrative; deterministic).
+function pqcTarget(algo: string, status: string): string {
+  const A = algo.toUpperCase();
+  if (status === "weakened" && A.includes("AES")) return "AES-256";
+  if (A.includes("SHA-1") || A === "SHA1") return "SHA-256";
+  if (A.includes("ECDSA") || A.includes("ED25519") || (A.includes("DSA") && !A.includes("ECDSA")))
+    return "ML-DSA-65";
+  if (A.includes("RSA") || A.includes("DH") || A.includes("ECDH") || A.includes("KEM"))
+    return "ML-KEM-768";
+  return "ML-KEM-768 / ML-DSA-65";
+}
+
 function RemediationPage() {
   const reduce = useReducedMotion();
-  // Items the verification re-scan has flipped from "migrated" → "verified".
+  const { rows: assets, live } = useAssets();
+  // Items the (local) re-verify has flipped from "migrated" → "verified".
   const [verified, setVerified] = useState<Set<string>>(new Set());
   const [scanning, setScanning] = useState(false);
-  const [selectedId, setSelectedId] = useState<string>("rem_01");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Real assets -> remediation cards; offline falls back to the rich mock board.
+  const base: RemView[] = useMemo(() => {
+    if (live) {
+      return assets
+        .filter((a) => a.status !== "safe")
+        .map((a) => {
+          const st = (a.remediationState ?? "discovered") as RemediationState;
+          return {
+            id: a.id,
+            asset: a.name,
+            from: a.algorithm,
+            to: pqcTarget(a.algorithm, a.status),
+            state: REM_STATES.has(st) ? st : "discovered",
+            owner: a.owner,
+            updatedAt: "—",
+          };
+        });
+    }
+    return remediations.map((r) => ({ ...r }) as RemView);
+  }, [assets, live]);
 
   const items = useMemo(
     () =>
-      remediations.map((r) =>
-        verified.has(r.id) ? { ...r, state: "verified" as RemediationState } : r,
-      ),
-    [verified],
+      base.map((r) => (verified.has(r.id) ? { ...r, state: "verified" as RemediationState } : r)),
+    [base, verified],
   );
-  const selected = items.find((r) => r.id === selectedId) ?? items[0];
+  const selected = items.find((r) => r.id === selectedId) ?? items[0] ?? null;
   const migratedCount = items.filter((r) => r.state === "migrated").length;
 
   function runVerify() {
     if (scanning || migratedCount === 0) return;
     setScanning(true);
     const toFlip = items.filter((r) => r.state === "migrated").map((r) => r.id);
-    // Stagger the red→green flips for a satisfying cascade.
     toFlip.forEach((id, i) => {
       window.setTimeout(
         () => {
@@ -76,6 +120,13 @@ function RemediationPage() {
       />
 
       <div className="space-y-6 px-8 py-8">
+        {!live && (
+          <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            Showing sample data — backend not reachable. The live board fills from your real
+            inventory.
+          </div>
+        )}
+
         {/* Pipeline board */}
         <div className="grid gap-4 lg:grid-cols-5">
           {REMEDIATION_STATES.map((col) => {
@@ -113,8 +164,8 @@ function RemediationPage() {
           })}
         </div>
 
-        {/* Selected PR detail */}
-        {selected && <PrDetail r={selected} />}
+        {/* Selected detail */}
+        {selected && <PrDetail r={selected} live={live} />}
       </div>
     </>
   );
@@ -134,7 +185,7 @@ function PipelineCard({
   onClick,
   reduce,
 }: {
-  r: Remediation;
+  r: RemView;
   active: boolean;
   onClick: () => void;
   reduce: boolean;
@@ -178,8 +229,12 @@ function PipelineCard({
   );
 }
 
-function PrDetail({ r }: { r: Remediation }) {
-  const hasDiff = r.diffBefore && r.diffAfter;
+function PrDetail({ r, live }: { r: RemView; live: boolean }) {
+  // Real items have no diff yet (remediation authoring is in development) -> show
+  // an illustrative call-site swap, clearly marked Preview.
+  const before = r.diffBefore ?? `// ${r.from} — quantum-vulnerable`;
+  const after = r.diffAfter ?? `// ${r.to} — hybrid post-quantum (call-site swap)`;
+  const preview = live && !r.diffBefore;
   return (
     <motion.div
       key={r.id}
@@ -196,7 +251,7 @@ function PrDetail({ r }: { r: Remediation }) {
             </div>
             <div>
               <div className="text-sm font-semibold">
-                {r.pr ? `PR #${r.pr} · crypto-agility: ${r.asset}` : `${r.asset} — not yet opened`}
+                {r.pr ? `PR #${r.pr} · crypto-agility: ${r.asset}` : `Crypto-agility: ${r.asset}`}
               </div>
               <div className="font-mono text-[11px] text-muted-foreground">
                 {r.from} → {r.to} · {r.owner} · {r.updatedAt}
@@ -206,35 +261,38 @@ function PrDetail({ r }: { r: Remediation }) {
           <StateChip state={r.state} />
         </div>
 
-        {hasDiff ? (
-          <div className="p-5 font-mono text-[12.5px] leading-relaxed">
-            <div className="overflow-x-auto rounded-lg border border-border bg-muted p-4">
-              <div className="text-shor">- {r.diffBefore}</div>
-              <div className="text-pqc">+ {r.diffAfter}</div>
+        <div className="p-5 font-mono text-[12.5px] leading-relaxed">
+          {preview && (
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-grover/30 bg-grover/10 px-2.5 py-0.5 font-sans text-[10px] font-medium uppercase tracking-wider text-grover">
+              Preview · illustrative
             </div>
-            <p className="mt-4 font-sans text-xs leading-relaxed text-muted-foreground">
-              The agility refactor only swaps the call-site to a verified post-quantum library — the
-              primitive is never authored by the agent. Every change is gated by the checks on the
-              right and a human review.
-            </p>
+          )}
+          <div className="overflow-x-auto rounded-lg border border-border bg-muted p-4">
+            <div className="text-shor">- {before}</div>
+            <div className="text-pqc">+ {after}</div>
           </div>
-        ) : (
-          <div className="px-6 py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              This asset is in <span className="text-foreground">{labelOf(r.state)}</span>. A
-              migration PR will be drafted once it is triaged.
-            </p>
-          </div>
-        )}
+          <p className="mt-4 font-sans text-xs leading-relaxed text-muted-foreground">
+            The agility refactor only swaps the call-site to a verified post-quantum library — the
+            primitive is never authored by the agent. Every change is gated by the checks on the
+            right and a human review.
+          </p>
+        </div>
       </div>
 
       <div className="surface p-6">
-        <div className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Safety gates
+        <div className="flex items-center justify-between">
+          <div className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Safety gates
+          </div>
+          {preview && (
+            <span className="rounded-full border border-grover/30 bg-grover/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-grover">
+              Preview
+            </span>
+          )}
         </div>
         <h3 className="font-display mt-1 text-lg tracking-tight">Differential & size checks</h3>
         <div className="mt-4 space-y-2.5">
-          {(r.checks ?? defaultChecks(r.state)).map((c) => (
+          {(r.checks ?? defaultChecks(r.state, preview)).map((c) => (
             <div
               key={c.label}
               className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
@@ -250,6 +308,12 @@ function PrDetail({ r }: { r: Remediation }) {
             </div>
           ))}
         </div>
+        {preview && (
+          <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+            Automated differential & interop testing is in development — these gates are shown to
+            illustrate the verification model.
+          </p>
+        )}
         {r.state === "verified" && (
           <div className="mt-5 flex items-center gap-2 rounded-lg border border-pqc/30 bg-pqc/10 px-3 py-2.5 text-xs text-pqc">
             <CheckCircle2 className="h-4 w-4" /> Re-scan confirmed quantum-safe.
@@ -260,7 +324,13 @@ function PrDetail({ r }: { r: Remediation }) {
   );
 }
 
-function defaultChecks(state: RemediationState) {
+function defaultChecks(state: RemediationState, preview: boolean) {
+  if (preview)
+    return [
+      { label: "crypto-agility call-site identified", pass: true },
+      { label: "differential round-trip", pass: false },
+      { label: "interop · legacy clients", pass: false },
+    ];
   if (state === "discovered" || state === "triaged")
     return [
       { label: "awaiting migration PR", pass: false },
