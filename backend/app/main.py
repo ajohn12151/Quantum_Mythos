@@ -336,15 +336,30 @@ async def get_scan_cbom(scan_id: UUID):
     return bom
 
 
-@app.get("/api/orgs/{org_id}/assets")
-async def list_assets(org_id: UUID, category: str | None = None, sort: str = "priority"):
+async def _assets_payload(con, org_id, category, sort) -> list[dict]:
+    """Org's crypto assets as frontend Asset DTOs (newest/most-urgent first)."""
     order = "priority_score DESC NULLS LAST" if sort == "priority" else "last_seen DESC"
     q = f"""SELECT a.*, r.state AS remediation_state, r.pr_url
             FROM crypto_asset a LEFT JOIN remediation r ON r.asset_id = a.id
             WHERE a.org_id=$1 {'AND a.category=$2' if category else ''}
             ORDER BY {order}"""
-    rows = await (db.pool().fetch(q, org_id, category) if category else db.pool().fetch(q, org_id))
-    return [dict(r) for r in rows]
+    rows = await (con.fetch(q, org_id, category) if category else con.fetch(q, org_id))
+    return [dto.asset_to_dto(dict(r)) for r in rows]
+
+
+@app.get("/api/assets")
+async def list_assets_current(
+    category: str | None = None,
+    sort: str = "priority",
+    org_id: UUID = Depends(get_current_org),
+):
+    """Assets for the caller's org (resolved from the auth token; demo org if none)."""
+    return await _assets_payload(db.pool(), org_id, category, sort)
+
+
+@app.get("/api/orgs/{org_id}/assets")
+async def list_assets(org_id: UUID, category: str | None = None, sort: str = "priority"):
+    return await _assets_payload(db.pool(), org_id, category, sort)
 
 
 @app.get("/api/assets/{asset_id}")
@@ -416,10 +431,21 @@ async def _dashboard_payload(con, org_id) -> dict:
     }
 
 
+async def _findings_payload(con, org_id) -> list[dict]:
+    rows = await con.fetch(
+        "SELECT * FROM finding WHERE org_id=$1 ORDER BY created_at DESC", org_id)
+    return [dto.finding_to_dto(dict(r)) for r in rows]
+
+
+@app.get("/api/findings")
+async def list_findings_current(org_id: UUID = Depends(get_current_org)):
+    """White-box findings for the caller's org, as frontend Finding DTOs."""
+    return await _findings_payload(db.pool(), org_id)
+
+
 @app.get("/api/orgs/{org_id}/findings")
 async def list_findings(org_id: UUID):
-    rows = await db.pool().fetch("SELECT * FROM finding WHERE org_id=$1", org_id)
-    return [dict(r) for r in rows]
+    return await _findings_payload(db.pool(), org_id)
 
 
 @app.post("/api/assets/{asset_id}/remediate")

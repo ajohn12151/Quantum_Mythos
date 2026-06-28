@@ -80,6 +80,38 @@ def asset_to_dto(row: dict) -> dict:
     }
 
 
+# finding.severity (semgrep emits ERROR/WARNING/INFO) -> frontend Finding.severity
+_SEVERITY_MAP = {
+    "ERROR": "high", "WARNING": "medium", "INFO": "low",
+    "critical": "critical", "high": "high", "medium": "medium", "low": "low",
+}
+
+
+def _severity(s) -> str:
+    if not s:
+        return "medium"
+    return _SEVERITY_MAP.get(s) or _SEVERITY_MAP.get(str(s).lower(), "medium")
+
+
+def finding_to_dto(row: dict) -> dict:
+    """One finding row -> the frontend Finding DTO (white-box classical misuse).
+    All persisted findings are first-party (discover() drops deps/test/vendor)."""
+    fp = row.get("file_path") or ""
+    line = row.get("line")
+    return {
+        "id": str(row["id"]),
+        "title": row.get("title") or "Crypto misuse",
+        "cwe": row.get("cwe") or "",
+        "severity": _severity(row.get("severity")),
+        "file": f"{fp}:{line}" if fp and line else (fp or "—"),
+        "repo": "source",
+        "status": "fixed" if row.get("resolved") else "open",
+        "firstParty": True,
+        "explanation": row.get("explanation") or "",
+        "fix": row.get("suggested_fix") or "",
+    }
+
+
 def risk_score(broken: int, weakened: int, total: int) -> int:
     """0-100 posture score. Broken counts full, weakened half. Deterministic and
     explainable (no model): the share of the estate that is quantum-exposed."""
