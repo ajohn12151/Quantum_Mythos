@@ -51,13 +51,15 @@ function pqcTarget(algo: string, status: string): string {
 
 function RemediationPage() {
   const reduce = useReducedMotion();
-  const { rows: assets, live } = useAssets();
+  const { rows: assets, live, loading } = useAssets();
   // Items the (local) re-verify has flipped from "migrated" → "verified".
   const [verified, setVerified] = useState<Set<string>>(new Set());
   const [scanning, setScanning] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Real assets -> remediation cards; offline falls back to the rich mock board.
+  // Real assets -> remediation cards. While the real query is still loading we
+  // render an empty board (not the mock) so the animated cards don't churn
+  // mock→real on first navigation. Offline (failed query) falls back to mock.
   const base: RemView[] = useMemo(() => {
     if (live) {
       return assets
@@ -75,8 +77,9 @@ function RemediationPage() {
           };
         });
     }
+    if (loading) return [];
     return remediations.map((r) => ({ ...r }) as RemView);
-  }, [assets, live]);
+  }, [assets, live, loading]);
 
   const items = useMemo(
     () =>
@@ -120,7 +123,12 @@ function RemediationPage() {
       />
 
       <div className="space-y-6 px-8 py-8">
-        {!live && (
+        {loading && (
+          <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            Loading your remediation pipeline…
+          </div>
+        )}
+        {!live && !loading && (
           <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
             Showing sample data — backend not reachable. The live board fills from your real
             inventory.

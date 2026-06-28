@@ -48,13 +48,13 @@ const MOCK: AssetView[] = mockAssets.map((a) => ({
   remediationState: "discovered",
 }));
 
-export function useAssets(): { rows: AssetView[]; live: boolean } {
-  const { data } = useQuery({
+export function useAssets(): { rows: AssetView[]; live: boolean; loading: boolean } {
+  const { data, isLoading } = useQuery({
     queryKey: ["assets"],
     queryFn: api.assets,
     retry: 0,
     refetchInterval: 15_000,
   });
-  if (!data) return { rows: MOCK, live: false };
-  return { rows: data.map(fromDTO), live: true };
+  if (!data) return { rows: MOCK, live: false, loading: isLoading };
+  return { rows: data.map(fromDTO), live: true, loading: false };
 }
