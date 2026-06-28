@@ -10,8 +10,8 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 | Dashboard | `index.tsx` | ✅ wired | `GET /api/dashboard` via `useDashboard` (mock fallback + "sample data" banner) |
 | Scan | `scan.tsx` | ✅ wired | `POST /api/scans` + poll `GET /api/scans/{id}` |
 | Assets | `assets.tsx` | ✅ wired | `GET /api/assets` (current-org) via `useAssets` (mock fallback + banner) |
-| Asset detail | `assets.$assetId.tsx` | 🔴 mock | `GET /api/assets/{id}`; fix hardcoded `scn_91`/"TLS probe" + algorithm normalization |
-| Prioritization | `prioritization.tsx` | 🔴 mock | reuse `GET /api/assets?sort=priority` |
+| Asset detail | `assets.$assetId.tsx` | ✅ wired | `GET /api/assets/{id}` (DTO); algorithm normalizer + real discovery/lifecycle; mock fallback |
+| Prioritization | `prioritization.tsx` | ✅ wired | `useAssets` (client-side weighted ranking; owner-blast falls back since owner unknown) |
 | Findings | `findings.tsx` | ✅ wired | `GET /api/findings` (current-org) via `useFindings` (mock fallback + banner) |
 | Remediation | `remediation.tsx` | 🔴 mock | assets carry `remediation_state`/`pr_url`; `POST /api/assets/{id}/remediate` + `/reverify`. ⚠️ verified/differential-test is a backend **stub** — frame as "proposes migration, review-gated". Wire last. |
 | Compliance | `compliance.tsx` | ⚫ fabricated | `mandates` from mock; **no backend model**. Reframe / "coming soon" / build a model. |
@@ -30,7 +30,7 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 ## Fix order (highest demo value first)
 1. ~~**Scan page**~~ ✅ done
 2. ~~**Assets + Findings**~~ ✅ done
-3. **Asset detail + Prioritization** (cheap; reuse assets endpoint) ← next
-4. **Org switcher** real name
+3. ~~**Asset detail + Prioritization**~~ ✅ done
+4. **Org switcher** real name ← next
 5. **Remediation** (wire real parts; mark stubbed gates as preview)
 6. **Compliance + Settings** (reframe to honest "coming soon" before judging)

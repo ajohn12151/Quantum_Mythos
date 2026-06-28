@@ -85,6 +85,7 @@ export interface FindingDTO {
 export const api = {
   dashboard: () => getJSON<DashboardDTO>("/api/dashboard"),
   assets: () => getJSON<AssetDTO[]>("/api/assets"),
+  asset: (id: string) => getJSON<AssetDTO>(`/api/assets/${id}`),
   findings: () => getJSON<FindingDTO[]>("/api/findings"),
   createScan: async (mode: string, target: string) =>
     fetch(`${BASE}/api/scans`, {

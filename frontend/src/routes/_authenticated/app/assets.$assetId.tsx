@@ -1,57 +1,170 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
   Cpu,
-  GitBranch,
+  Search,
   Server,
   Shield,
   Wrench,
 } from "lucide-react";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Reveal, Stagger, StaggerItem } from "@/components/marketing/Reveal";
-import { algorithmMeta, getAsset } from "@/lib/mock-data";
+import { algorithmMeta, getAsset as getMockAsset } from "@/lib/mock-data";
+import { api, type AssetDTO } from "@/lib/api";
 
 export const Route = createFileRoute("/_authenticated/app/assets/$assetId")({
   component: AssetDetail,
-  notFoundComponent: () => (
-    <div className="px-8 py-16 text-center">
-      <h1 className="text-xl font-semibold">Asset not found</h1>
-      <Link
-        to="/app/assets"
-        className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
-      >
-        ← Back to inventory
-      </Link>
-    </div>
-  ),
-  errorComponent: ({ error }) => (
-    <div className="px-8 py-16 text-center text-sm text-destructive">{error.message}</div>
-  ),
-  loader: ({ params }) => {
-    const asset = getAsset(params.assetId);
-    if (!asset) throw notFound();
-    return asset;
-  },
 });
 
+// How the asset was discovered, from its source kind.
+const DETECTION: Record<string, string> = {
+  tls: "TLS handshake",
+  ssh: "SSH host key",
+  certificate: "Certificate (CT log)",
+  library: "Binary / dependency",
+  code: "Source code",
+  secret: "Secret scan",
+};
+
+// Map any backend algorithm string -> a family + plain-English note. Exact mock
+// entries win (RSA-2048, X25519MLKEM768, …); otherwise infer from the name so we
+// never crash on free-text algorithms like "ECDSA/EC" or "asymmetric".
+function algoMeta(algorithm: string, status: string): { family: string; note: string } {
+  const exact = (algorithmMeta as Record<string, { family: string; note: string }>)[algorithm];
+  if (exact) return { family: exact.family, note: exact.note };
+  const A = algorithm.toUpperCase();
+  const f = (family: string, note: string) => ({ family, note });
+  if (A.includes("ML-KEM") || A.includes("KYBER"))
+    return f("PQC", "NIST FIPS 203 post-quantum KEM — quantum-safe.");
+  if (A.includes("ML-DSA") || A.includes("DILITHIUM") || A.includes("FALCON") || A.includes("SLH-DSA"))
+    return f("PQC", "NIST post-quantum signature — quantum-safe.");
+  if (A.includes("ED25519")) return f("ECC", "Edwards-curve signatures, broken by Shor's algorithm.");
+  if (A.includes("ECDH")) return f("ECC", "Elliptic-curve key exchange, broken by Shor's algorithm.");
+  if (A.includes("ECDSA")) return f("ECC", "Elliptic-curve signatures, broken by Shor's algorithm.");
+  if (A.includes("RSA")) return f("RSA", "Broken by Shor's algorithm once a CRQC exists.");
+  if (A.includes("CURVE") || A.includes("P256") || A.includes("P384") || A.includes("P521") || /\bEC\b/.test(A) || A.includes("ECC"))
+    return f("ECC", "Elliptic-curve cryptography, broken by Shor's algorithm.");
+  if (A.startsWith("DH") || A.includes("DIFFIE")) return f("DH", "Discrete-log key exchange, broken by Shor's algorithm.");
+  if (A.includes("DSA")) return f("DH", "Discrete-log signatures, broken by Shor's algorithm.");
+  if (A.includes("AES")) return f("AES", "Symmetric cipher; Grover halves effective security — prefer AES-256.");
+  if (A.includes("CHACHA")) return f("Symmetric", "Symmetric stream cipher; only Grover-weakened.");
+  if (A.includes("SHA")) return f("Hash", "Hash function; only Grover-weakened.");
+  return status === "safe"
+    ? f("PQC", "Considered quantum-safe.")
+    : f("Asymmetric", "Quantum-vulnerable cryptography.");
+}
+
+interface DetailView {
+  id: string;
+  name: string;
+  kind: string;
+  host: string | null;
+  algorithm: string;
+  status: "broken" | "weakened" | "safe" | "unknown";
+  exposure: string;
+  environment: string;
+  owner: string;
+  hndlRisk: number;
+  discoveredAt: string | null;
+  recommendedFix: string | null;
+  rationale: string | null;
+  remediationState: string | null;
+}
+
+function fromDTO(a: AssetDTO): DetailView {
+  return {
+    id: a.id,
+    name: a.name,
+    kind: a.kind,
+    host: a.host,
+    algorithm: a.algorithm,
+    status: a.status,
+    exposure: a.exposure,
+    environment: a.environment ?? "—",
+    owner: a.owner ?? "—",
+    hndlRisk: a.hndlRisk,
+    discoveredAt: a.discoveredAt,
+    recommendedFix: a.recommendedFix,
+    rationale: a.rationale,
+    remediationState: a.remediationState,
+  };
+}
+
 function AssetDetail() {
-  const asset = Route.useLoaderData();
-  const meta = algorithmMeta[asset.algorithm as keyof typeof algorithmMeta];
+  const { assetId } = Route.useParams();
+  const { data, isLoading } = useQuery({
+    queryKey: ["asset", assetId],
+    queryFn: () => api.asset(assetId),
+    retry: 0,
+  });
+
+  let asset: DetailView | null = data ? fromDTO(data) : null;
+  if (!asset) {
+    // Offline / not in backend: fall back to the mock catalogue (mock ids only).
+    const m = getMockAsset(assetId);
+    if (m)
+      asset = {
+        id: m.id,
+        name: m.name,
+        kind: m.kind,
+        host: m.host ?? null,
+        algorithm: m.algorithm,
+        status: m.status,
+        exposure: m.exposure,
+        environment: m.environment,
+        owner: m.owner,
+        hndlRisk: m.hndlRisk,
+        discoveredAt: m.discoveredAt,
+        recommendedFix: m.recommendedFix ?? null,
+        rationale: null,
+        remediationState: null,
+      };
+  }
+
+  if (isLoading && !asset)
+    return <div className="px-8 py-16 text-center text-sm text-muted-foreground">Loading asset…</div>;
+
+  if (!asset)
+    return (
+      <div className="px-8 py-16 text-center">
+        <h1 className="text-xl font-semibold">Asset not found</h1>
+        <Link
+          to="/app/assets"
+          className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+        >
+          ← Back to inventory
+        </Link>
+      </div>
+    );
+
+  const meta = algoMeta(asset.algorithm, asset.status);
+  const detection = DETECTION[asset.kind] ?? "Scan";
+  const statusWord =
+    asset.status === "broken"
+      ? "Shor-broken"
+      : asset.status === "weakened"
+        ? "Grover-weakened"
+        : asset.status === "safe"
+          ? "quantum-safe"
+          : "unclassified";
 
   const timeline = [
     {
-      when: asset.discoveredAt,
+      when: asset.discoveredAt ?? "—",
       label: "Discovered",
-      body: `Surfaced during scan scn_91. Classified as ${meta.family}.`,
+      body: `Surfaced via ${detection}. Classified as ${meta.family}.`,
       icon: Cpu,
       accent: "text-primary",
     },
     {
-      when: "2026-06-22",
+      when: asset.discoveredAt ?? "—",
       label: "Triaged",
-      body: `Flagged ${asset.status === "broken" ? "Shor-broken" : asset.status === "weakened" ? "Grover-weakened" : "quantum-safe"}. HNDL risk ${asset.hndlRisk}.`,
+      body: `Flagged ${statusWord}. HNDL risk ${asset.hndlRisk}.${
+        asset.rationale ? ` ${asset.rationale}` : ""
+      }`,
       icon: Shield,
       accent:
         asset.status === "broken"
@@ -62,8 +175,15 @@ function AssetDetail() {
     },
     {
       when: "—",
-      label: "Remediation pending",
-      body: asset.recommendedFix ?? "No remediation required — already quantum-safe.",
+      label:
+        asset.remediationState && asset.remediationState !== "discovered"
+          ? `Remediation: ${asset.remediationState}`
+          : "Remediation pending",
+      body:
+        asset.recommendedFix ??
+        (asset.status === "safe"
+          ? "No remediation required — already quantum-safe."
+          : "Crypto-agility migration not yet proposed."),
       icon: Wrench,
       accent: "text-muted-foreground",
     },
@@ -173,15 +293,15 @@ function AssetDetail() {
             <ul className="mt-3 space-y-3 text-sm">
               <li className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" /> First seen{" "}
-                <span className="ml-auto font-mono text-xs">{asset.discoveredAt}</span>
+                <span className="ml-auto font-mono text-xs">{asset.discoveredAt ?? "—"}</span>
               </li>
               <li className="flex items-center gap-3">
-                <Server className="h-4 w-4 text-muted-foreground" /> Scan{" "}
-                <span className="ml-auto font-mono text-xs">scn_91</span>
+                <Search className="h-4 w-4 text-muted-foreground" /> Detection{" "}
+                <span className="ml-auto font-mono text-xs">{detection}</span>
               </li>
               <li className="flex items-center gap-3">
-                <GitBranch className="h-4 w-4 text-muted-foreground" /> Source{" "}
-                <span className="ml-auto font-mono text-xs">TLS probe</span>
+                <Server className="h-4 w-4 text-muted-foreground" /> Exposure{" "}
+                <span className="ml-auto font-mono text-xs">{asset.exposure}</span>
               </li>
             </ul>
           </StaggerItem>

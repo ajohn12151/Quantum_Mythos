@@ -5,7 +5,7 @@ import { Flame, Sparkles, Sliders, Target } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Reveal } from "@/components/marketing/Reveal";
-import { assets, type Asset } from "@/lib/mock-data";
+import { useAssets, type AssetView } from "@/hooks/useAssets";
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
 
@@ -17,8 +17,7 @@ export const Route = createFileRoute("/_authenticated/app/prioritization")({
 type Weights = { hndl: number; exposure: number; blast: number; effort: number };
 const DEFAULT_WEIGHTS: Weights = { hndl: 40, exposure: 25, blast: 25, effort: 10 };
 
-const exposureWeight = (e: Asset["exposure"]) =>
-  e === "internet" ? 100 : e === "partner" ? 65 : 30;
+const exposureWeight = (e: string) => (e === "internet" ? 100 : e === "partner" ? 65 : 30);
 const blastByOwner: Record<string, number> = {
   payments: 95,
   identity: 90,
@@ -27,7 +26,7 @@ const blastByOwner: Record<string, number> = {
   data: 75,
   supply: 55,
 };
-const effortByKind: Record<Asset["kind"], number> = {
+const effortByKind: Record<string, number> = {
   certificate: 85,
   tls: 70,
   secret: 55,
@@ -36,19 +35,20 @@ const effortByKind: Record<Asset["kind"], number> = {
   code: 35,
 };
 
-function scoreOf(a: Asset, w: Weights) {
+function scoreOf(a: AssetView, w: Weights) {
   const total = w.hndl + w.exposure + w.blast + w.effort || 1;
   const s =
     (a.hndlRisk * w.hndl +
       exposureWeight(a.exposure) * w.exposure +
       (blastByOwner[a.owner] ?? 50) * w.blast +
-      effortByKind[a.kind] * w.effort) /
+      (effortByKind[a.kind] ?? 50) * w.effort) /
     total;
   return Math.round(s);
 }
 
 function PrioritizationPage() {
   const [w, setW] = useState<Weights>(DEFAULT_WEIGHTS);
+  const { rows: allAssets, live } = useAssets();
   const reduce = useReducedMotion();
   const listRef = useRef<HTMLOListElement>(null);
   const inView = useInView(listRef, { once: true, margin: "-60px" });
@@ -56,11 +56,11 @@ function PrioritizationPage() {
 
   const ranked = useMemo(
     () =>
-      assets
+      allAssets
         .filter((a) => a.status !== "safe")
         .map((a) => ({ asset: a, score: scoreOf(a, w) }))
         .sort((a, b) => b.score - a.score),
-    [w],
+    [w, allAssets],
   );
 
   return (
@@ -70,6 +70,12 @@ function PrioritizationPage() {
         title="Where to migrate first"
         description="Aegis ranks every at-risk asset by harvest-now risk, exposure, blast radius, and remediation effort. Tune the weights to match your strategy."
       />
+      {!live && (
+        <div className="mx-8 mt-4 rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+          Showing sample data — backend not reachable. Run a scan once connected to rank your real
+          assets.
+        </div>
+      )}
       <div className="grid gap-6 px-8 py-8 lg:grid-cols-[280px_1fr]">
         <Reveal as="aside" immediate className="space-y-6">
           <div className="surface p-5">
@@ -174,7 +180,7 @@ function Row({
   reduce,
 }: {
   rank: number;
-  asset: Asset;
+  asset: AssetView;
   score: number;
   weights: Weights;
   reduce: boolean;
@@ -195,7 +201,7 @@ function Row({
     },
     {
       label: "Effort",
-      v: effortByKind[asset.kind],
+      v: effortByKind[asset.kind] ?? 50,
       w: weights.effort,
       color: "var(--quantum-violet)",
     },
