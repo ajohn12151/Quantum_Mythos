@@ -13,9 +13,9 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 | Asset detail | `assets.$assetId.tsx` | ✅ wired | `GET /api/assets/{id}` (DTO); algorithm normalizer + real discovery/lifecycle; mock fallback |
 | Prioritization | `prioritization.tsx` | ✅ wired | `useAssets` (client-side weighted ranking; owner-blast falls back since owner unknown) |
 | Findings | `findings.tsx` | ✅ wired | `GET /api/findings` (current-org) via `useFindings` (mock fallback + banner) |
-| Remediation | `remediation.tsx` | 🔴 mock | assets carry `remediation_state`/`pr_url`; `POST /api/assets/{id}/remediate` + `/reverify`. ⚠️ verified/differential-test is a backend **stub** — frame as "proposes migration, review-gated". Wire last. |
-| Compliance | `compliance.tsx` | ⚫ fabricated | `mandates` from mock; **no backend model**. Reframe / "coming soon" / build a model. |
-| Settings | `settings.tsx` | ⚫ aspirational | hardcoded org name + placeholder inputs; **no backend**. Reframe to what's real. |
+| Remediation | `remediation.tsx` | ✅ wired (preview) | Board fills from real assets by `remediationState` (via `useAssets`); diff + safety-gates clearly labeled **Preview** (differential test is a backend stub). Mock fallback. |
+| Compliance | `compliance.tsx` | ✅ reframed | Readiness **derived from real inventory** (`useDashboard` quantum-safe share) across CNSA 2.0 / NIST IR 8547 / FIPS 203-205; per-control tracking marked "coming soon"; export marked coming soon. No fabricated mandates. |
+| Settings | `settings.tsx` | ✅ reframed | Real org name + plan (`useMe`, read-only); monitored domains / GitHub App / API keys / notifications shown as honest **"coming soon"** cards (no fake data). |
 
 ## Cross-cutting
 - ✅ Org switcher now shows the real org via `GET /api/me` + `useMe` (AppShell topbar + settings OrgCard). Demo org → "Demo Org"; real users → their org name.
@@ -32,5 +32,9 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 2. ~~**Assets + Findings**~~ ✅ done
 3. ~~**Asset detail + Prioritization**~~ ✅ done
 4. ~~**Org switcher** real name~~ ✅ done
-5. **Remediation** (wire real parts; mark stubbed gates as preview) ← next, needs product call
-6. **Compliance + Settings** (reframe to honest "coming soon" before judging) ← needs product call
+5. ~~**Remediation** (real board + preview-labeled gates)~~ ✅ done
+6. ~~**Compliance + Settings** (reframed to honest)~~ ✅ done
+
+**All app screens are now wired to the real backend or honestly reframed.**
+Remaining product work (not UI-wiring): real verified remediation (differential
+test), CBOM/evidence export, GitHub App, monitored-domains scheduler, API keys.

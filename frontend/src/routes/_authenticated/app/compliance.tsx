@@ -1,45 +1,65 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Check, Download, FileText, ShieldCheck } from "lucide-react";
+import { Download, FileText, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Stagger, StaggerItem } from "@/components/marketing/Reveal";
 import { useCountUp } from "@/hooks/use-count-up";
-import { mandates, type Mandate } from "@/lib/mock-data";
+import { useDashboard } from "@/hooks/useDashboard";
 
 export const Route = createFileRoute("/_authenticated/app/compliance")({
   component: CompliancePage,
 });
 
-const statusMeta: Record<Mandate["status"], { label: string; cls: string }> = {
-  met: { label: "Met", cls: "status-pqc" },
-  on_track: { label: "On track", cls: "status-pqc" },
-  at_risk: { label: "At risk", cls: "status-shor" },
-};
+// Public PQC-migration frameworks. Per-control tracking is in development; the
+// readiness number is derived honestly from the live inventory's quantum-safe share.
+const FRAMEWORKS = [
+  {
+    name: "CNSA 2.0",
+    authority: "NSA",
+    summary: "Suite of quantum-resistant algorithms; phased adoption through 2033.",
+  },
+  {
+    name: "NIST IR 8547",
+    authority: "NIST",
+    summary: "Transition to post-quantum cryptography standards across federal systems.",
+  },
+  {
+    name: "FIPS 203 / 204 / 205",
+    authority: "NIST (2024)",
+    summary: "ML-KEM, ML-DSA, and SLH-DSA — the standardized post-quantum primitives.",
+  },
+];
 
 function CompliancePage() {
-  const overall = Math.round(mandates.reduce((s, m) => s + m.progress, 0) / mandates.length);
+  const { totals, live } = useDashboard();
+  const coverage = totals.total > 0 ? Math.round((100 * totals.safe) / totals.total) : 0;
   return (
     <>
       <PageHeader
         eyebrow="Mandate"
         title="Compliance & audit"
-        description="Every mandate starts with a cryptographic inventory. Aegis tracks migration progress against each framework and exports auditor-ready proof on demand."
+        description="Every mandate starts with a cryptographic inventory. Aegis derives migration readiness from your live posture and (soon) exports auditor-ready proof."
         action={
           <button
-            onClick={() => toast.success("CBOM (CycloneDX) + audit PDF queued for export.")}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[var(--shadow-sm)] transition-colors hover:bg-primary/90"
+            onClick={() => toast("Evidence export (CBOM + audit PDF) is coming soon.")}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Download className="h-4 w-4" /> Export evidence
           </button>
         }
       />
       <div className="space-y-6 px-8 py-8">
-        <Overview overall={overall} />
-        <Stagger immediate className="grid gap-5 lg:grid-cols-2">
-          {mandates.map((m) => (
-            <StaggerItem key={m.id}>
-              <MandateCard m={m} />
+        {!live && (
+          <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            Showing sample data — backend not reachable.
+          </div>
+        )}
+        <Overview coverage={coverage} safe={totals.safe} total={totals.total} />
+        <Stagger immediate className="grid gap-5 lg:grid-cols-3">
+          {FRAMEWORKS.map((f) => (
+            <StaggerItem key={f.name}>
+              <FrameworkCard f={f} coverage={coverage} />
             </StaggerItem>
           ))}
         </Stagger>
@@ -48,9 +68,8 @@ function CompliancePage() {
   );
 }
 
-function Overview({ overall }: { overall: number }) {
-  const n = useCountUp(overall, { duration: 900 });
-  const met = mandates.filter((m) => m.status !== "at_risk").length;
+function Overview({ coverage, safe, total }: { coverage: number; safe: number; total: number }) {
+  const n = useCountUp(coverage, { duration: 900 });
   return (
     <div className="card-premium gradient-border relative overflow-hidden p-6">
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-quantum-violet/15 blur-3xl" />
@@ -61,12 +80,12 @@ function Overview({ overall }: { overall: number }) {
           </div>
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Overall readiness
+              Quantum-safe coverage
             </div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="font-display text-4xl font-semibold tabular-nums">{n}%</span>
               <span className="text-sm text-muted-foreground">
-                across {mandates.length} mandates · {met} on track
+                {safe} of {total} assets quantum-safe
               </span>
             </div>
           </div>
@@ -75,7 +94,7 @@ function Overview({ overall }: { overall: number }) {
           <motion.div
             className="h-full rounded-full bg-quantum"
             initial={{ width: 0 }}
-            animate={{ width: `${overall}%` }}
+            animate={{ width: `${coverage}%` }}
             transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
           />
         </div>
@@ -84,65 +103,42 @@ function Overview({ overall }: { overall: number }) {
   );
 }
 
-function MandateCard({ m }: { m: Mandate }) {
-  const meta = statusMeta[m.status];
-  const done = m.controls.filter((c) => c.done).length;
+function FrameworkCard({ f, coverage }: { f: (typeof FRAMEWORKS)[number]; coverage: number }) {
   return (
     <div className="surface flex h-full flex-col p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-quantum-cyan" />
-            <h3 className="font-display text-lg tracking-tight">{m.name}</h3>
+            <h3 className="font-display text-lg tracking-tight">{f.name}</h3>
           </div>
-          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-            {m.authority} · {m.deadline}
-          </div>
+          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{f.authority}</div>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider ${meta.cls}`}
-        >
-          {meta.label}
+        <span className="shrink-0 rounded-full border border-border bg-muted px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          Tracking soon
         </span>
       </div>
 
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{m.summary}</p>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.summary}</p>
 
-      <div className="mt-4">
+      <div className="mt-auto pt-5">
         <div className="mb-1.5 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-          <span>Migration progress</span>
-          <span className="tabular-nums text-foreground">{m.progress}%</span>
+          <span>Quantum-safe coverage</span>
+          <span className="tabular-nums text-foreground">{coverage}%</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <motion.div
             className="h-full rounded-full"
-            style={{ background: m.status === "at_risk" ? "var(--shor)" : "var(--pqc)" }}
+            style={{ background: coverage >= 50 ? "var(--pqc)" : "var(--shor)" }}
             initial={{ width: 0 }}
-            whileInView={{ width: `${m.progress}%` }}
+            whileInView={{ width: `${coverage}%` }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1] }}
           />
         </div>
-      </div>
-
-      <div className="mt-5 space-y-2 border-t border-border pt-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          Controls · {done}/{m.controls.length}
-        </div>
-        {m.controls.map((c) => (
-          <div key={c.label} className="flex items-center gap-2.5 text-xs">
-            <span
-              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-                c.done ? "bg-pqc/15 text-pqc" : "border border-border text-transparent"
-              }`}
-            >
-              <Check className="h-2.5 w-2.5" />
-            </span>
-            <span className={c.done ? "text-foreground/85" : "text-muted-foreground"}>
-              {c.label}
-            </span>
-          </div>
-        ))}
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          Readiness derived from your live inventory. Per-control mapping is in development.
+        </p>
       </div>
     </div>
   );
