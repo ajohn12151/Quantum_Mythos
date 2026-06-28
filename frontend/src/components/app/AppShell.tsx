@@ -1,5 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMe } from "@/hooks/useMe";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -146,6 +147,7 @@ function Sidebar({
 
 function Topbar() {
   const navigate = useNavigate();
+  const { orgName } = useMe();
   const onLogout = async () => {
     endDemoSession();
     await supabase.auth.signOut();
@@ -155,7 +157,7 @@ function Topbar() {
     <header className="glass sticky top-0 z-30 flex h-16 items-center gap-3 border-x-0 border-t-0 px-6">
       <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/60">
         <span className="h-2 w-2 rounded-full bg-primary" />
-        Acme Corp
+        <span className="max-w-[180px] truncate">{orgName}</span>
         <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
       <div className="relative ml-2 hidden flex-1 max-w-md md:block">

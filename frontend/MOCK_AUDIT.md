@@ -18,7 +18,7 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 | Settings | `settings.tsx` | ⚫ aspirational | hardcoded org name + placeholder inputs; **no backend**. Reframe to what's real. |
 
 ## Cross-cutting
-- 🔴 Org switcher hardcoded **"Acme Corp"** — `components/app/AppShell.tsx:158` (and `settings.tsx:81`). Show the real org. *Backend gap:* dashboard returns `orgId` but not org **name** — small add.
+- ✅ Org switcher now shows the real org via `GET /api/me` + `useMe` (AppShell topbar + settings OrgCard). Demo org → "Demo Org"; real users → their org name.
 - 🟢 `components/app/StatusBadge.tsx` imports `mock-data` but only `import type { CryptoStatus }` — a type, harmless. (Eventually move shared types out of `mock-data.ts`.)
 - `lib/mock-data.ts` stays as the dashboard offline fallback + type source; trim once all screens are wired.
 
@@ -31,6 +31,6 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 1. ~~**Scan page**~~ ✅ done
 2. ~~**Assets + Findings**~~ ✅ done
 3. ~~**Asset detail + Prioritization**~~ ✅ done
-4. **Org switcher** real name ← next
-5. **Remediation** (wire real parts; mark stubbed gates as preview)
-6. **Compliance + Settings** (reframe to honest "coming soon" before judging)
+4. ~~**Org switcher** real name~~ ✅ done
+5. **Remediation** (wire real parts; mark stubbed gates as preview) ← next, needs product call
+6. **Compliance + Settings** (reframe to honest "coming soon" before judging) ← needs product call

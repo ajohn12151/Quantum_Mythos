@@ -83,6 +83,7 @@ export interface FindingDTO {
 }
 
 export const api = {
+  me: () => getJSON<{ orgId: string; orgName: string; plan: string }>("/api/me"),
   dashboard: () => getJSON<DashboardDTO>("/api/dashboard"),
   assets: () => getJSON<AssetDTO[]>("/api/assets"),
   asset: (id: string) => getJSON<AssetDTO>(`/api/assets/${id}`),

@@ -281,6 +281,17 @@ async def health():
     return {"ok": True}
 
 
+@app.get("/api/me")
+async def me(org_id: UUID = Depends(get_current_org)):
+    """Identity of the caller's org (for the org switcher). Demo org if no token."""
+    row = await db.pool().fetchrow("SELECT name, plan FROM org WHERE id=$1", org_id)
+    return {
+        "orgId": str(org_id),
+        "orgName": row["name"] if row else "Demo Org",
+        "plan": row["plan"] if row else "free",
+    }
+
+
 @app.post("/api/scans")
 async def create_scan(
     req: ScanRequest, bg: BackgroundTasks, org_id: UUID = Depends(get_current_org)

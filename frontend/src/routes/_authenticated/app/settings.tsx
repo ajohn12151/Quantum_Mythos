@@ -4,6 +4,7 @@ import { Copy, Github, Globe, KeyRound, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Stagger, StaggerItem } from "@/components/marketing/Reveal";
+import { useMe } from "@/hooks/useMe";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({ component: SettingsPage });
 
@@ -75,11 +76,12 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
 }
 
 function OrgCard() {
+  const { orgName, plan } = useMe();
   return (
     <Section title="Organization" description="How Aegis labels your workspace and reports.">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Organization name" value="Acme Corp" />
-        <Field label="Primary domain" value="acme.com" mono />
+        <Field label="Organization name" value={orgName} />
+        <Field label="Plan" value={plan} mono />
       </div>
       <div className="mt-4 flex justify-end">
         <SaveButton />
