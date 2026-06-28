@@ -4,7 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertOctagon, ChevronRight, Lightbulb, ShieldX } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Stagger, StaggerItem } from "@/components/marketing/Reveal";
-import { findings, type Finding, type Severity } from "@/lib/mock-data";
+import { type Finding, type Severity } from "@/lib/mock-data";
+import { useFindings } from "@/hooks/useFindings";
 
 export const Route = createFileRoute("/_authenticated/app/findings")({ component: FindingsPage });
 
@@ -20,25 +21,26 @@ type Filter = "all" | Severity;
 function FindingsPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [firstPartyOnly, setFirstPartyOnly] = useState(true);
-  const [open, setOpen] = useState<string | null>(findings[0].id);
+  const [open, setOpen] = useState<string | null>(null);
+  const { rows: allFindings, live } = useFindings();
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: 0 };
-    findings.forEach((f) => {
+    allFindings.forEach((f) => {
       if (firstPartyOnly && !f.firstParty) return;
       c.all++;
       c[f.severity] = (c[f.severity] ?? 0) + 1;
     });
     return c;
-  }, [firstPartyOnly]);
+  }, [firstPartyOnly, allFindings]);
 
   const rows = useMemo(
     () =>
-      findings
+      allFindings
         .filter((f) => (firstPartyOnly ? f.firstParty : true))
         .filter((f) => (filter === "all" ? true : f.severity === filter))
         .sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)),
-    [filter, firstPartyOnly],
+    [filter, firstPartyOnly, allFindings],
   );
 
   return (
@@ -49,6 +51,12 @@ function FindingsPage() {
         description="Classical crypto misuse from source — CWE-tagged and severity-ranked. Aegis down-ranks dependency noise so you see real, first-party bugs first."
       />
       <div className="space-y-5 px-8 py-8">
+        {!live && (
+          <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            Showing sample data — backend not reachable. Run a white-box (repository) scan once
+            connected to populate real findings.
+          </div>
+        )}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <FilterChip

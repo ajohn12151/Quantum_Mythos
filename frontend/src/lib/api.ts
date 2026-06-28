@@ -69,8 +69,23 @@ export interface ScanHandle {
   status: string;
 }
 
+export interface FindingDTO {
+  id: string;
+  title: string;
+  cwe: string;
+  severity: "critical" | "high" | "medium" | "low";
+  file: string;
+  repo: string;
+  status: "open" | "triaged" | "fixed";
+  firstParty: boolean;
+  explanation: string;
+  fix: string;
+}
+
 export const api = {
   dashboard: () => getJSON<DashboardDTO>("/api/dashboard"),
+  assets: () => getJSON<AssetDTO[]>("/api/assets"),
+  findings: () => getJSON<FindingDTO[]>("/api/findings"),
   createScan: async (mode: string, target: string) =>
     fetch(`${BASE}/api/scans`, {
       method: "POST",

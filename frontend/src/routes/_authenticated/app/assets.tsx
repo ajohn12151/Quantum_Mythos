@@ -5,7 +5,8 @@ import { ArrowUpDown, Filter, Search } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { Reveal } from "@/components/marketing/Reveal";
-import { assets, type CryptoStatus } from "@/lib/mock-data";
+import { type CryptoStatus } from "@/lib/mock-data";
+import { useAssets } from "@/hooks/useAssets";
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
 
@@ -22,9 +23,10 @@ function AssetsPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<CryptoStatus | "all">("all");
   const [sortDesc, setSortDesc] = useState(true);
+  const { rows: allAssets, live } = useAssets();
 
   const rows = useMemo(() => {
-    const filtered = assets.filter((a) => {
+    const filtered = allAssets.filter((a) => {
       if (status !== "all" && a.status !== status) return false;
       if (
         q &&
@@ -36,7 +38,7 @@ function AssetsPage() {
       return true;
     });
     return filtered.sort((a, b) => (sortDesc ? b.hndlRisk - a.hndlRisk : a.hndlRisk - b.hndlRisk));
-  }, [q, status, sortDesc]);
+  }, [q, status, sortDesc, allAssets]);
 
   const reduce = useReducedMotion();
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -51,6 +53,12 @@ function AssetsPage() {
         description="Every cryptographic asset Aegis has observed across your perimeter, identity surface, and source."
       />
       <div className="px-8 py-6">
+        {!live && (
+          <div className="mb-4 rounded-lg border border-border bg-muted/50 px-4 py-2.5 text-xs text-muted-foreground">
+            Showing sample data — backend not reachable. Run a scan once connected to populate
+            your real inventory.
+          </div>
+        )}
         <div className="surface overflow-hidden">
           <Reveal className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 max-w-md">
@@ -186,7 +194,7 @@ function AssetsPage() {
             </table>
           </div>
           <div className="border-t border-border px-5 py-3 font-mono text-[11px] text-muted-foreground">
-            Showing {rows.length} of {assets.length} assets
+            Showing {rows.length} of {allAssets.length} assets
           </div>
         </div>
       </div>
