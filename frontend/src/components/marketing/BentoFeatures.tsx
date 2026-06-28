@@ -18,7 +18,7 @@ export function BentoFeatures() {
     <section className="relative border-t border-border py-28">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal>
-          <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-primary">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
             <span className="h-px w-6 bg-primary/40" />
             One engine, every surface
           </div>
@@ -38,7 +38,7 @@ export function BentoFeatures() {
                 <Globe className="h-4 w-4 text-quantum-cyan" />
                 <span className="text-sm font-semibold">Live external discovery</span>
               </div>
-              <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <span className="h-1.5 w-1.5 animate-pulse-glow rounded-full bg-pqc" /> scanning
               </span>
             </div>
@@ -68,11 +68,11 @@ export function BentoFeatures() {
             </div>
             <div className="py-6">
               <div className="text-gradient font-display text-5xl font-semibold tracking-tight">
-                ~2032
+                2030s
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                RSA-2048, grounded in fault-tolerance resource estimation — the column no general
-                agent can fill.
+                The credible window for RSA-2048 — an estimated range grounded in quantum
+                fault-tolerance resource estimation, not a fixed date or vibes.
               </p>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted">

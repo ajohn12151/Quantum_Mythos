@@ -75,6 +75,13 @@ export function MarketingHeader() {
             >
               Pricing
             </Link>
+            <Link
+              to="/newsletter"
+              className="transition-colors hover:text-foreground"
+              activeProps={{ className: "text-foreground" }}
+            >
+              Reading
+            </Link>
           </nav>
           <div className="flex items-center gap-2">
             <button
