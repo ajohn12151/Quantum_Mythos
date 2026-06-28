@@ -371,7 +371,7 @@ async def get_asset(asset_id: UUID):
     )
     if not row:
         raise HTTPException(404, "asset not found")
-    return dict(row)
+    return dto.asset_to_dto(dict(row))
 
 
 @app.get("/api/dashboard")
