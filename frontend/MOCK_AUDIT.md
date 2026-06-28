@@ -8,11 +8,11 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 | Screen | File (`src/routes/_authenticated/app/`) | Status | Wire to |
 |---|---|---|---|
 | Dashboard | `index.tsx` | ✅ wired | `GET /api/dashboard` via `useDashboard` (mock fallback + "sample data" banner) |
-| Scan | `scan.tsx` | ⚙️→✅ (in progress) | `POST /api/scans` + poll `GET /api/scans/{id}` |
-| Assets | `assets.tsx` | 🔴 mock | `GET /api/orgs/{org}/assets` (add current-org variant) |
+| Scan | `scan.tsx` | ✅ wired | `POST /api/scans` + poll `GET /api/scans/{id}` |
+| Assets | `assets.tsx` | ✅ wired | `GET /api/assets` (current-org) via `useAssets` (mock fallback + banner) |
 | Asset detail | `assets.$assetId.tsx` | 🔴 mock | `GET /api/assets/{id}`; fix hardcoded `scn_91`/"TLS probe" + algorithm normalization |
-| Prioritization | `prioritization.tsx` | 🔴 mock | reuse `GET /api/orgs/{org}/assets?sort=priority` |
-| Findings | `findings.tsx` | 🔴 mock | `GET /api/orgs/{org}/findings` |
+| Prioritization | `prioritization.tsx` | 🔴 mock | reuse `GET /api/assets?sort=priority` |
+| Findings | `findings.tsx` | ✅ wired | `GET /api/findings` (current-org) via `useFindings` (mock fallback + banner) |
 | Remediation | `remediation.tsx` | 🔴 mock | assets carry `remediation_state`/`pr_url`; `POST /api/assets/{id}/remediate` + `/reverify`. ⚠️ verified/differential-test is a backend **stub** — frame as "proposes migration, review-gated". Wire last. |
 | Compliance | `compliance.tsx` | ⚫ fabricated | `mandates` from mock; **no backend model**. Reframe / "coming soon" / build a model. |
 | Settings | `settings.tsx` | ⚫ aspirational | hardcoded org name + placeholder inputs; **no backend**. Reframe to what's real. |
@@ -28,9 +28,9 @@ Legend: ✅ wired · 🔴 mock · ⚙️ fake (scripted, no data) · ⚫ no back
 - `api.ts`: add `listAssets`, `getAsset`, `listFindings` (+ remediation) methods + DTOs. `authHeaders` already attaches the JWT.
 
 ## Fix order (highest demo value first)
-1. **Scan page** (hero — makes the site actually do something real)
-2. **Assets + Findings** (populate from scans)
-3. **Asset detail + Prioritization** (cheap; reuse assets endpoint)
+1. ~~**Scan page**~~ ✅ done
+2. ~~**Assets + Findings**~~ ✅ done
+3. **Asset detail + Prioritization** (cheap; reuse assets endpoint) ← next
 4. **Org switcher** real name
 5. **Remediation** (wire real parts; mark stubbed gates as preview)
 6. **Compliance + Settings** (reframe to honest "coming soon" before judging)
