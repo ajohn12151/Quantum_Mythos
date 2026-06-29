@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import db, dto
-from .auth import get_current_org
+from .auth import get_current_org, require_user_org
 from .config import CORS_ORIGINS, GITHUB_TOKEN
 from .scanners.blackbox.classify import est_time_to_break
 from .scanners.blackbox.ct_logs import enumerate_hosts
@@ -290,6 +290,32 @@ async def me(org_id: UUID = Depends(get_current_org)):
         "orgName": row["name"] if row else "Demo Org",
         "plan": row["plan"] if row else "free",
     }
+
+
+@app.delete("/api/org/data")
+async def clear_org_data(org_id: UUID = Depends(require_user_org)):
+    """Reset the caller's workspace to an empty slate: delete every scan, discovered
+    asset, finding, remediation, and posture snapshot for *their own* org. Keeps the
+    org + app_user rows, so the user stays signed in — they just get an empty
+    dashboard. `require_user_org` guarantees this can only ever clear the caller's
+    own tenant and never the shared demo org. Returns the deleted row counts."""
+    def _count(status: str) -> int:        # asyncpg returns e.g. "DELETE 7"
+        try:
+            return int(status.split()[-1])
+        except (ValueError, IndexError):
+            return 0
+
+    con = db.pool()
+    async with con.acquire() as c:
+        async with c.transaction():
+            # Order matters only for clarity: deleting crypto_asset cascades its
+            # remediation + finding(asset_id) rows, but we clear findings first to
+            # also catch any with a null asset_id; scan_summary + scan are separate.
+            findings = _count(await c.execute("DELETE FROM finding WHERE org_id=$1", org_id))
+            assets = _count(await c.execute("DELETE FROM crypto_asset WHERE org_id=$1", org_id))
+            await c.execute("DELETE FROM scan_summary WHERE org_id=$1", org_id)
+            scans = _count(await c.execute("DELETE FROM scan WHERE org_id=$1", org_id))
+    return {"cleared": True, "scans": scans, "assets": assets, "findings": findings}
 
 
 @app.post("/api/scans")
