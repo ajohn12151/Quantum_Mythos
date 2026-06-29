@@ -108,3 +108,17 @@ async def get_current_org(authorization: str | None = Header(default=None)) -> U
         return await demo_org()
     claims = _verify_token(token)
     return await _org_for_user(claims["sub"], claims.get("email"))
+
+
+async def require_user_org(authorization: str | None = Header(default=None)) -> UUID:
+    """Like `get_current_org`, but REQUIRES a signed-in user — never falls back to
+    the demo org. Use for destructive / account-scoped actions so an anonymous
+    visitor on the no-login demo path can neither act as, nor mutate, the shared
+    demo tenant. The returned org is always the caller's own."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "authentication required")
+    token = authorization.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(401, "authentication required")
+    claims = _verify_token(token)
+    return await _org_for_user(claims["sub"], claims.get("email"))

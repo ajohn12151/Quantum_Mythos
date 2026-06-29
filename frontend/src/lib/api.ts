@@ -98,4 +98,14 @@ export const api = {
       return r.json() as Promise<ScanHandle>;
     }),
   scanStatus: (id: string) => getJSON<{ status: string; summary_json: unknown }>(`/api/scans/${id}`),
+  // Reset the signed-in user's workspace (scans/assets/findings/remediations).
+  // Auth-required server-side, so it only ever clears the caller's own org.
+  clearOrgData: async () =>
+    fetch(`${BASE}/api/org/data`, {
+      method: "DELETE",
+      headers: { ...(await authHeaders()) },
+    }).then((r) => {
+      if (!r.ok) throw new Error(`API ${r.status} on /api/org/data`);
+      return r.json() as Promise<{ cleared: boolean; scans: number; assets: number; findings: number }>;
+    }),
 };
